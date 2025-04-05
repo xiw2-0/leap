@@ -7,5 +7,5 @@ router = fastapi.APIRouter()
 
 
 @router.get("/", response_model=asset.XtAsset)
-def get_user():
-    return asset_service.get_asset()
+async def get_asset():
+    return await asset_service.AssetService().get_asset()
