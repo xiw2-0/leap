@@ -37,7 +37,7 @@ class PushService(object):
                     await connection.send_text(xt_message)
                 except Exception as e:
                     self._logger.error(
-                        f"Error sending message to client: {e}. Closing connection.")
+                        f"Error sending message to client: {e}. Closing connection. Application state: {connection.application_state}. Client state: {connection.client_state}.")
                     remove_list.append(connection)
             for conn in remove_list:
                 self._active_connections.remove(conn)

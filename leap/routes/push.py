@@ -1,4 +1,6 @@
+import asyncio
 import fastapi
+import logging
 
 from leap.config import settings
 from leap.services import push_service
@@ -14,6 +16,10 @@ async def trade_push(websocket: fastapi.WebSocket):
     push_svc = push_service.PushService()  # singleton
     push_svc.add_connection(websocket)
 
+    while websocket.client_state == fastapi.websockets.WebSocketState.CONNECTED and websocket.application_state == fastapi.websockets.WebSocketState.CONNECTED:
+        await asyncio.sleep(20)
+    logging.debug(
+        f"Websocket closed, application state: {websocket.application_state}, client state: {websocket.client_state}")
 
 html = """
 <!DOCTYPE html>
@@ -31,6 +37,13 @@ html = """
                 var messages = document.getElementById('messages')
                 var message = document.createElement('li')
                 var content = document.createTextNode(event.data)
+                message.appendChild(content)
+                messages.appendChild(message)
+            };
+            ws.onclose = function(event) {
+                var messages = document.getElementById('messages')
+                var message = document.createElement('li')
+                var content = document.createTextNode("Connection closed")
                 message.appendChild(content)
                 messages.appendChild(message)
             };
