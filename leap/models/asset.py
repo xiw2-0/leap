@@ -2,21 +2,11 @@ import pydantic
 
 
 class XtAsset(pydantic.BaseModel):
-    """Stock asset.
+    """Stock asset. 迅投股票账号资金结构."""
 
-    迅投股票账号资金结构.
-
-    Attributes:
-        account_type: int, 资金账号类型
-        account_id: str, 资金账号
-        cash: float, 可用
-        frozen_cash: float, 冻结
-        market_value: float, 持仓市值
-        total_asset: float 总资产
-    """
-    account_type: int
-    account_id: str
-    cash: float
-    frozen_cash: float
-    market_value: float
-    total_asset: float
+    account_type: int = pydantic.Field(..., description="资金账号类型")
+    account_id: str = pydantic.Field(..., description="资金账号")
+    cash: float = pydantic.Field(..., description="可用现金")
+    frozen_cash: float = pydantic.Field(..., description="冻结现金")
+    market_value: float = pydantic.Field(..., description="持仓市值")
+    total_asset: float = pydantic.Field(..., description="总资产")
