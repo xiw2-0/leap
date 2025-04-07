@@ -4,7 +4,7 @@ import time
 import typing
 
 from leap.config import settings
-from leap.models import asset
+from leap.models import asset, trade
 from leap.services import publisher
 from leap.utils import singleton, model_util
 
@@ -75,3 +75,15 @@ class XtBroker(object):
         asset_ = await future
 
         return model_util.to_pydantic_model(asset_, asset.XtAsset)
+
+    async def order_stock_async(self, order_request: trade.OrderStockRequest) -> int:
+        """返回下单请求序号, 成功委托后的下单请求序号为大于0的正整数, 如果为-1表示委托失败"""
+        return self._xt_trader.order_stock_async(  # type: ignore
+            account=self._xt_account,
+            stock_code=order_request.stock_code,
+            order_type=order_request.order_type,
+            order_volume=order_request.order_volume,
+            price_type=order_request.price_type,
+            price=order_request.price,
+            strategy_name=order_request.strategy_name,
+            order_remark=order_request.order_remark)
