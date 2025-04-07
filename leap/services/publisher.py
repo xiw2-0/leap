@@ -1,6 +1,6 @@
 import datetime as dt
 
-from leap.models import account, message, trade
+from leap.models import account, message, trade as trade_model
 from leap.services import push_service
 from leap.utils import model_util
 from xtquant import xttype, xttrader  # type: ignore
@@ -33,15 +33,15 @@ class XtPublisher(xttrader.XtQuantTraderCallback):
             type=message.MessageType.STOCK_ORDER,
             timestamp=self._datetime_now(),
             message=model_util.to_pydantic_model(
-                order, trade.XtOrder)
+                order, trade_model.XtOrder)
         ))
 
-    def on_stock_trade(self, xt_trade: xttype.XtTrade):
+    def on_stock_trade(self, trade: xttype.XtTrade):
         self._push_service.notify_subscribers(message.XtMessage(
             type=message.MessageType.STOCK_TRADE,
             timestamp=self._datetime_now(),
             message=model_util.to_pydantic_model(
-                xt_trade, trade.XtTrade)
+                trade, trade_model.XtTrade)
         ))
 
     def on_order_error(self, order_error: xttype.XtOrderError):
@@ -49,7 +49,7 @@ class XtPublisher(xttrader.XtQuantTraderCallback):
             type=message.MessageType.ORDER_ERROR,
             timestamp=self._datetime_now(),
             message=model_util.to_pydantic_model(
-                order_error, trade.XtOrderError)
+                order_error, trade_model.XtOrderError)
         ))
 
     def on_cancel_error(self, cancel_error: xttype.XtCancelError):
@@ -57,7 +57,7 @@ class XtPublisher(xttrader.XtQuantTraderCallback):
             type=message.MessageType.CANCEL_ERROR,
             timestamp=self._datetime_now(),
             message=model_util.to_pydantic_model(
-                cancel_error, trade.XtCancelError)
+                cancel_error, trade_model.XtCancelError)
         ))
 
     def on_order_stock_async_response(self, response: xttype.XtOrderResponse):
@@ -65,7 +65,7 @@ class XtPublisher(xttrader.XtQuantTraderCallback):
             type=message.MessageType.ORDER_STOCK_ASYNC_RESPONSE,
             timestamp=self._datetime_now(),
             message=model_util.to_pydantic_model(
-                response, trade.XtOrderResponse)
+                response, trade_model.XtOrderResponse)
         ))
 
     def on_cancel_order_stock_async_response(self, response: xttype.XtCancelOrderResponse):
@@ -73,7 +73,7 @@ class XtPublisher(xttrader.XtQuantTraderCallback):
             type=message.MessageType.CANCEL_ORDER_STOCK_ASYNC_RESPONSE,
             timestamp=self._datetime_now(),
             message=model_util.to_pydantic_model(
-                response, trade.XtCancelOrderResponse)
+                response, trade_model.XtCancelOrderResponse)
         ))
 
     def _datetime_now(self) -> dt.datetime:

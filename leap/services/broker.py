@@ -87,3 +87,22 @@ class XtBroker(object):
             price=order_request.price,
             strategy_name=order_request.strategy_name,
             order_remark=order_request.order_remark)
+
+    async def query_stock_positions_async(self) -> list[asset.XtPosition]:
+        future: asyncio.Future[list[asset.XtPosition]] = asyncio.Future()
+
+        def callback(result: typing.Any) -> None:
+            nonlocal future
+            future.set_result(result)
+
+        self._xt_trader.query_stock_positions_async(  # type: ignore
+            self._xt_account, callback)
+        positions = await future
+        positions = [model_util.to_pydantic_model(position, asset.XtPosition)
+                     for position in positions]
+        return positions
+
+    def query_stock_position(self, stock_code: str) -> asset.XtPosition:
+        position: xttype.XtPosition = self._xt_trader.query_stock_position(  # type: ignore
+            self._xt_account, stock_code)
+        return model_util.to_pydantic_model(position, asset.XtPosition)
