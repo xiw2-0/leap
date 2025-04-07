@@ -2,7 +2,7 @@ import datetime as dt
 import enum
 import pydantic
 
-from leap.models import account
+from leap.models import account, trade
 
 
 class MessageType(enum.Enum):
@@ -20,4 +20,4 @@ class XtMessage(pydantic.BaseModel):
     type: MessageType
     timestamp: dt.datetime
 
-    message: account.XtAccountStatus | None
+    message: account.XtAccountStatus | trade.XtOrder | trade.XtTrade | trade.XtOrderError | trade.XtCancelError | trade.XtOrderResponse | trade.XtCancelOrderResponse | None
