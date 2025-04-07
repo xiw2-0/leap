@@ -88,6 +88,11 @@ class XtBroker(object):
             strategy_name=order_request.strategy_name,
             order_remark=order_request.order_remark)
 
+    async def cancel_order_stock_async(self, order_id: int) -> int:
+        """返回撤单请求序号, 成功委托后的撤单请求序号为大于0的正整数, 如果为-1表示撤单失败"""
+        return self._xt_trader.cancel_order_stock_async(  # type: ignore
+            self._xt_account, order_id)
+
     async def query_stock_positions_async(self) -> list[asset.XtPosition]:
         future: asyncio.Future[list[asset.XtPosition]] = asyncio.Future()
 
@@ -106,3 +111,27 @@ class XtBroker(object):
         position: xttype.XtPosition = self._xt_trader.query_stock_position(  # type: ignore
             self._xt_account, stock_code)
         return model_util.to_pydantic_model(position, asset.XtPosition)
+
+    async def query_stock_orders_async(self) -> list[trade.XtOrder]:
+        future: asyncio.Future[list[trade.XtOrder]] = asyncio.Future()
+
+        def callback(result: typing.Any) -> None:
+            nonlocal future
+            future.set_result(result)
+
+        self._xt_trader.query_stock_orders_async(  # type: ignore
+            self._xt_account, callback, cancelable_only=False)
+        orders = await future
+        return [model_util.to_pydantic_model(order, trade.XtOrder) for order in orders]
+
+    async def query_stock_trades_async(self) -> list[trade.XtTrade]:
+        future: asyncio.Future[list[trade.XtTrade]] = asyncio.Future()
+
+        def callback(result: typing.Any) -> None:
+            nonlocal future
+            future.set_result(result)
+
+        self._xt_trader.query_stock_trades_async(  # type: ignore
+            self._xt_account, callback)
+        trades = await future
+        return [model_util.to_pydantic_model(t, trade.XtTrade) for t in trades]
