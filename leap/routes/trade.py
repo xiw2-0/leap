@@ -20,6 +20,17 @@ async def cancel_stock_order_async(order_id: int) -> int:
 async def query_stock_orders_async() -> list[trade.XtOrder]:
     return await trade_service.TradeService().query_stock_orders_async()
 
+
 @router.get("/trades", response_model=list[trade.XtTrade])
 async def query_stock_trades_async() -> list[trade.XtTrade]:
     return await trade_service.TradeService().query_stock_trades_async()
+
+
+@router.get("/ipo/listing", response_model=list[trade.IPOListing])
+async def query_ipo_listing_async() -> list[trade.IPOListing]:
+    return await trade_service.TradeService().query_ipo_listing_async()
+
+
+@router.get("/ipo/purchase_limit", response_model=list[trade.NewStockPurchaseLimit])
+async def query_ipo_purchase_limit_async() -> list[trade.NewStockPurchaseLimit]:
+    return await trade_service.TradeService().query_ipo_purchase_limit_async()

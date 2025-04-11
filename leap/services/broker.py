@@ -134,3 +134,42 @@ class XtBroker(object):
             self._xt_account, callback)
         trades = await future
         return [model_util.to_pydantic_model(t, trade.XtTrade) for t in trades]
+
+    async def query_ipo_listing_async(self) -> list[trade.IPOListing]:
+        future: asyncio.Future[list[typing.Any]] = asyncio.Future()
+
+        def callback(result: typing.Any) -> None:
+            nonlocal future
+            future.set_result(result)
+        self._xt_trader.query_ipo_data_async(callback)  # type: ignore
+
+        ipo_data_list = await future
+        return [
+            trade.IPOListing(
+                name=item.m_strIPOName,
+                ipo_code=item.m_strIPOCode,
+                ipo_type=item.m_strIPOType,
+                max_purchase_num=item.m_nMaxPurchaseNum,
+                min_purchase_num=item.m_nMinPurchaseNum,
+                purchase_date=item.m_strPurchaseDate,
+                issue_price=item.m_dIssuePrice
+            ) for item in ipo_data_list
+        ]
+
+    async def query_new_stock_purchase_limit_sync(self) -> list[trade.NewStockPurchaseLimit]:
+        """Query new stock purchase limit. 查询新股申购额度. 债券的申购额度固定10000张"""
+        future: asyncio.Future[list[typing.Any]] = asyncio.Future()
+
+        def callback(result: typing.Any) -> None:
+            nonlocal future
+            future.set_result(result)
+        self._xt_trader.query_new_purchase_limit_async(  # type: ignore
+            account=self._xt_account, callback=callback)
+        new_stock_purchase_limits = await future
+
+        return [
+            trade.NewStockPurchaseLimit(
+                market=item.m_strNewPurchaseLimitKey,
+                purchase_limit=item.m_nNewPurchaseLimitValue
+            ) for item in new_stock_purchase_limits
+        ]

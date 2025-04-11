@@ -155,3 +155,26 @@ class OrderStockRequest(pydantic.BaseModel):
     """)
     strategy_name: str = pydantic.Field(..., description="策略名称")
     order_remark: str = pydantic.Field(..., description="委托备注")
+
+
+class IPOListing(pydantic.BaseModel):
+    """IPO data. 新股新债数据 """
+
+    name: str = pydantic.Field(..., description="股票名称")
+    ipo_code: str = pydantic.Field(...,
+                                   description="IPO代码, 沪市股票是7开头, 深市股票和股票代码一致")
+    ipo_type: str = pydantic.Field(...,
+                                   description="IPO 类型, STOCK - 股票, BOND - 债券")
+    max_purchase_num: int = pydantic.Field(...,
+                                           description="""最大申购额度 单位为股（股票）/ 张（债券）""")
+    min_purchase_num: int = pydantic.Field(...,
+                                           description="""最小申购额度 单位为股（股票）/ 张（债券）""")
+    purchase_date: str = pydantic.Field(..., description="申购日期")
+    issue_price: float = pydantic.Field(..., description="发行价格 单位为元")
+
+
+class NewStockPurchaseLimit(pydantic.BaseModel):
+    """New stock purchase limit. 新股申购额度 """
+    market: str = pydantic.Field(...,
+                                 description="股票市场, KCB - 科创板，SH - 上海，SZ - 深圳")
+    purchase_limit: int = pydantic.Field(..., description="申购额度, 单位为股")

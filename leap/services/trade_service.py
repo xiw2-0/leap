@@ -17,3 +17,9 @@ class TradeService(object):
 
     async def query_stock_trades_async(self) -> list[trade.XtTrade]:
         return await self._broker.query_stock_trades_async()
+
+    async def query_ipo_listing_async(self) -> list[trade.IPOListing]:
+        return await self._broker.query_ipo_listing_async()
+
+    async def query_ipo_purchase_limit_async(self) -> list[trade.NewStockPurchaseLimit]:
+        return await self._broker.query_new_stock_purchase_limit_sync()
