@@ -21,8 +21,8 @@ class XtBroker(object):
         self._xt_trader.register_callback(  # type: ignore
             callback=xt_publisher)
 
-        qmt_account = settings.QMT_ACCOUNT
-        self._xt_account = self._setup_xt_account(qmt_account, self._xt_trader)
+        self._xt_account = self._setup_xt_account(
+            settings.QMT_ACCOUNT, settings.QMT_ACCOUNT_TYPE, self._xt_trader)
         sub = self._xt_trader.subscribe(self._xt_account)  # type: ignore
         assert sub == 0, f'Subscribe to account {self._xt_account} failed'
 
@@ -42,12 +42,11 @@ class XtBroker(object):
 
         return trader
 
-    def _setup_xt_account(self, account: str, xt_trader: xttrader.XtQuantTrader) -> xttype.StockAccount:
+    def _setup_xt_account(self, account: str, account_type: str, xt_trader: xttrader.XtQuantTrader) -> xttype.StockAccount:
         """Sets up Xt StockAccount and returns it."""
         # 创建资金账号为 account 的证券账号对象
-        # 股票账号为STOCK 信用CREDIT 期货FUTURE
         xt_account: xttype.StockAccount = xttype.StockAccount(
-            account, 'STOCK')  # type: ignore
+            account, account_type)  # type: ignore
 
         # 取账号信息
         account_info: xttype.XtAsset = xt_trader.query_stock_asset(  # type: ignore

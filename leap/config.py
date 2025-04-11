@@ -1,3 +1,4 @@
+import pydantic
 import pydantic_settings
 
 
@@ -10,6 +11,7 @@ class Settings(pydantic_settings.BaseSettings):
 
     QMT_DATA_PATH: str = ""
     QMT_ACCOUNT: str = ""
+    QMT_ACCOUNT_TYPE: str = pydantic.Field(default="STOCK", examples=["STOCK", "CREDIT"])
 
 
 settings = Settings()
