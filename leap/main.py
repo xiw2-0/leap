@@ -1,16 +1,21 @@
 import fastapi
 
 from leap.config import settings
-from leap.routes import asset, push, trade, quote, docs
+from leap.middlewares import stats_middleware
+from leap.routes import asset, push, trade, quote, stats, docs
 
 app = fastapi.FastAPI(
     title=settings.PROJECT_NAME,
     docs_url=None,
+    default_response_class=fastapi.responses.ORJSONResponse,
 )
+
+app.add_middleware(stats_middleware.StatsMiddleware)
 
 app.include_router(asset.router, prefix="/asset", tags=["asset"])
 app.include_router(trade.router, prefix="/trade", tags=["trade"])
 app.include_router(quote.router, prefix="/quote", tags=["quote"])
+app.include_router(stats.router, prefix="/stats", tags=["stats"])
 app.include_router(push.router, prefix="/ws", tags=["websockets"])
 app.include_router(docs.router, tags=["docs"])
 
