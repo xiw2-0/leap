@@ -1,5 +1,6 @@
 import asyncio
 import logging
+import threading
 import time
 import typing
 
@@ -25,6 +26,8 @@ class XtBroker(object):
             settings.QMT_ACCOUNT, settings.QMT_ACCOUNT_TYPE, self._xt_trader)
         sub = self._xt_trader.subscribe(self._xt_account)  # type: ignore
         assert sub == 0, f'Subscribe to account {self._xt_account} failed'
+
+        self._lock = threading.Lock()
 
     def _setup_xt_trader(self, path: str) -> xttrader.XtQuantTrader:
         """Sets up XtQuantTrader and returns it."""
@@ -61,115 +64,181 @@ class XtBroker(object):
 
     async def query_stock_asset_async(self) -> asset.XtAsset:
         """异步查询股票资产信息"""
-        future: asyncio.Future[asset.XtAsset] = asyncio.Future()
+        with self._lock:
+            future: asyncio.Future[asset.XtAsset] = asyncio.Future()
 
-        def callback(result: typing.Any) -> None:
-            nonlocal future
-            future.set_result(result)
+            def callback(result: typing.Any) -> None:
+                nonlocal future
+                future.set_result(result)
 
-        self._xt_trader.query_stock_asset_async(  # type: ignore
-            self._xt_account, callback)
+            self._xt_trader.query_stock_asset_async(  # type: ignore
+                self._xt_account, callback)
 
-        # 等待 Future 完成，并获取结果
-        asset_ = await future
+            # 等待 Future 完成，并获取结果
+            asset_ = await future
 
-        return model_util.to_pydantic_model(asset_, asset.XtAsset)
+            return model_util.to_pydantic_model(asset_, asset.XtAsset)
+
+    def query_stock_asset(self) -> asset.XtAsset:
+        """同步查询股票资产信息"""
+        with self._lock:
+            asset_: xttype.XtAsset = self._xt_trader.query_stock_asset(  # type: ignore
+                self._xt_account)
+            return model_util.to_pydantic_model(asset_, asset.XtAsset)
 
     async def order_stock_async(self, order_request: trade.OrderStockRequest) -> int:
         """返回下单请求序号, 成功委托后的下单请求序号为大于0的正整数, 如果为-1表示委托失败"""
-        return self._xt_trader.order_stock_async(  # type: ignore
-            account=self._xt_account,
-            stock_code=order_request.stock_code,
-            order_type=order_request.order_type,
-            order_volume=order_request.order_volume,
-            price_type=order_request.price_type,
-            price=order_request.price,
-            strategy_name=order_request.strategy_name,
-            order_remark=order_request.order_remark)
+        with self._lock:
+            return self._xt_trader.order_stock_async(  # type: ignore
+                account=self._xt_account,
+                stock_code=order_request.stock_code,
+                order_type=order_request.order_type,
+                order_volume=order_request.order_volume,
+                price_type=order_request.price_type,
+                price=order_request.price,
+                strategy_name=order_request.strategy_name,
+                order_remark=order_request.order_remark)
 
     async def cancel_order_stock_async(self, order_id: int) -> int:
         """返回撤单请求序号, 成功委托后的撤单请求序号为大于0的正整数, 如果为-1表示撤单失败"""
-        return self._xt_trader.cancel_order_stock_async(  # type: ignore
-            self._xt_account, order_id)
+        with self._lock:
+            return self._xt_trader.cancel_order_stock_async(  # type: ignore
+                self._xt_account, order_id)
 
     async def query_stock_positions_async(self) -> list[asset.XtPosition]:
-        future: asyncio.Future[list[asset.XtPosition]] = asyncio.Future()
+        with self._lock:
+            future: asyncio.Future[list[asset.XtPosition]] = asyncio.Future()
 
-        def callback(result: typing.Any) -> None:
-            nonlocal future
-            future.set_result(result)
+            def callback(result: typing.Any) -> None:
+                nonlocal future
+                future.set_result(result)
 
-        self._xt_trader.query_stock_positions_async(  # type: ignore
-            self._xt_account, callback)
-        positions = await future
-        positions = [model_util.to_pydantic_model(position, asset.XtPosition)
-                     for position in positions]
-        return positions
+            self._xt_trader.query_stock_positions_async(  # type: ignore
+                self._xt_account, callback)
+            positions = await future
+            positions = [model_util.to_pydantic_model(position, asset.XtPosition)
+                         for position in positions]
+            return positions
+
+    def query_stock_positions(self) -> list[asset.XtPosition]:
+        with self._lock:
+            positions: list[xttype.XtPosition] = self._xt_trader.query_stock_positions(  # type: ignore
+                self._xt_account)
+            return [model_util.to_pydantic_model(position, asset.XtPosition)  # type: ignore
+                    for position in positions]  # type: ignore
 
     def query_stock_position(self, stock_code: str) -> asset.XtPosition:
-        position: xttype.XtPosition = self._xt_trader.query_stock_position(  # type: ignore
-            self._xt_account, stock_code)
-        return model_util.to_pydantic_model(position, asset.XtPosition)
+        with self._lock:
+            position: xttype.XtPosition = self._xt_trader.query_stock_position(  # type: ignore
+                self._xt_account, stock_code)
+            return model_util.to_pydantic_model(position, asset.XtPosition)
 
     async def query_stock_orders_async(self) -> list[trade.XtOrder]:
-        future: asyncio.Future[list[trade.XtOrder]] = asyncio.Future()
+        with self._lock:
+            future: asyncio.Future[list[trade.XtOrder]] = asyncio.Future()
 
-        def callback(result: typing.Any) -> None:
-            nonlocal future
-            future.set_result(result)
+            def callback(result: typing.Any) -> None:
+                nonlocal future
+                future.set_result(result)
 
-        self._xt_trader.query_stock_orders_async(  # type: ignore
-            self._xt_account, callback, cancelable_only=False)
-        orders = await future
-        return [model_util.to_pydantic_model(order, trade.XtOrder) for order in orders]
+            self._xt_trader.query_stock_orders_async(  # type: ignore
+                self._xt_account, callback, cancelable_only=False)
+            orders = await future
+            return [model_util.to_pydantic_model(order, trade.XtOrder) for order in orders]
+
+    def query_stock_orders(self) -> list[trade.XtOrder]:
+        with self._lock:
+            orders: list[xttype.XtOrder] = self._xt_trader.query_stock_orders(  # type: ignore
+                self._xt_account, cancelable_only=False)
+            return [model_util.to_pydantic_model(order, trade.XtOrder)  # type: ignore
+                    for order in orders]  # type: ignore
 
     async def query_stock_trades_async(self) -> list[trade.XtTrade]:
-        future: asyncio.Future[list[trade.XtTrade]] = asyncio.Future()
+        with self._lock:
+            future: asyncio.Future[list[trade.XtTrade]] = asyncio.Future()
 
-        def callback(result: typing.Any) -> None:
-            nonlocal future
-            future.set_result(result)
+            def callback(result: typing.Any) -> None:
+                nonlocal future
+                future.set_result(result)
 
-        self._xt_trader.query_stock_trades_async(  # type: ignore
-            self._xt_account, callback)
-        trades = await future
-        return [model_util.to_pydantic_model(t, trade.XtTrade) for t in trades]
+            self._xt_trader.query_stock_trades_async(  # type: ignore
+                self._xt_account, callback)
+            trades = await future
+            return [model_util.to_pydantic_model(t, trade.XtTrade) for t in trades]
+
+    def query_stock_trades(self) -> list[trade.XtTrade]:
+        with self._lock:
+            trades: list[xttype.XtTrade] = self._xt_trader.query_stock_trades(  # type: ignore
+                self._xt_account)
+            return [model_util.to_pydantic_model(t, trade.XtTrade)  # type: ignore
+                    for t in trades]  # type: ignore
 
     async def query_ipo_listing_async(self) -> list[trade.IPOListing]:
-        future: asyncio.Future[list[typing.Any]] = asyncio.Future()
+        with self._lock:
+            future: asyncio.Future[list[typing.Any]] = asyncio.Future()
 
-        def callback(result: typing.Any) -> None:
-            nonlocal future
-            future.set_result(result)
-        self._xt_trader.query_ipo_data_async(callback)  # type: ignore
+            def callback(result: typing.Any) -> None:
+                nonlocal future
+                future.set_result(result)
+            self._xt_trader.query_ipo_data_async(callback)  # type: ignore
 
-        ipo_data_list = await future
-        return [
-            trade.IPOListing(
-                name=item.m_strIPOName,
-                ipo_code=item.m_strIPOCode,
-                ipo_type=item.m_strIPOType,
-                max_purchase_num=item.m_nMaxPurchaseNum,
-                min_purchase_num=item.m_nMinPurchaseNum,
-                purchase_date=item.m_strPurchaseDate,
-                issue_price=item.m_dIssuePrice
-            ) for item in ipo_data_list
-        ]
+            ipo_data_list = await future
+            return [
+                trade.IPOListing(
+                    name=item.m_strIPOName,
+                    ipo_code=item.m_strIPOCode,
+                    ipo_type=item.m_strIPOType,
+                    max_purchase_num=item.m_nMaxPurchaseNum,
+                    min_purchase_num=item.m_nMinPurchaseNum,
+                    purchase_date=item.m_strPurchaseDate,
+                    issue_price=item.m_dIssuePrice
+                ) for item in ipo_data_list
+            ]
+
+    def query_ipo_listing(self) -> list[trade.IPOListing]:
+        with self._lock:
+            ipo_data_list: list[typing.Any] = \
+                self._xt_trader.query_ipo_data()  # type: ignore
+            return [
+                trade.IPOListing(
+                    name=item.m_strIPOName,
+                    ipo_code=item.m_strIPOCode,
+                    ipo_type=item.m_strIPOType,
+                    max_purchase_num=item.m_nMaxPurchaseNum,
+                    min_purchase_num=item.m_nMinPurchaseNum,
+                    purchase_date=item.m_strPurchaseDate,
+                    issue_price=item.m_dIssuePrice
+                ) for item in ipo_data_list
+            ]
 
     async def query_new_stock_purchase_limit_sync(self) -> list[trade.NewStockPurchaseLimit]:
         """Query new stock purchase limit. 查询新股申购额度. 债券的申购额度固定10000张"""
-        future: asyncio.Future[list[typing.Any]] = asyncio.Future()
+        with self._lock:
+            future: asyncio.Future[list[typing.Any]] = asyncio.Future()
 
-        def callback(result: typing.Any) -> None:
-            nonlocal future
-            future.set_result(result)
-        self._xt_trader.query_new_purchase_limit_async(  # type: ignore
-            account=self._xt_account, callback=callback)
-        new_stock_purchase_limits = await future
+            def callback(result: typing.Any) -> None:
+                nonlocal future
+                future.set_result(result)
+            self._xt_trader.query_new_purchase_limit_async(  # type: ignore
+                account=self._xt_account, callback=callback)
+            new_stock_purchase_limits = await future
 
-        return [
-            trade.NewStockPurchaseLimit(
-                market=item.m_strNewPurchaseLimitKey,
-                purchase_limit=item.m_nNewPurchaseLimitValue
-            ) for item in new_stock_purchase_limits
-        ]
+            return [
+                trade.NewStockPurchaseLimit(
+                    market=item.m_strNewPurchaseLimitKey,
+                    purchase_limit=item.m_nNewPurchaseLimitValue
+                ) for item in new_stock_purchase_limits
+            ]
+
+    def query_new_stock_purchase_limit(self) -> list[trade.NewStockPurchaseLimit]:
+        """Query new stock purchase limit. 查询新股申购额度. 债券的申购额度固定10000张"""
+        with self._lock:
+            new_stock_purchase_limits: list[typing.Any] = \
+                self._xt_trader.query_new_purchase_limit(  # type: ignore
+                    account=self._xt_account)
+            return [
+                trade.NewStockPurchaseLimit(
+                    market=item.m_strNewPurchaseLimitKey,
+                    purchase_limit=item.m_nNewPurchaseLimitValue
+                ) for item in new_stock_purchase_limits
+            ]

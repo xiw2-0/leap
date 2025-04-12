@@ -7,11 +7,11 @@ class AssetService(object):
     def __init__(self) -> None:
         self._broker = broker.XtBroker()
 
-    async def get_account_asset_async(self) -> asset.XtAsset:
-        return await self._broker.query_stock_asset_async()
+    def get_account_asset(self) -> asset.XtAsset:
+        return self._broker.query_stock_asset()
 
-    async def get_positions_async(self) -> list[asset.XtPosition]:
-        return await self._broker.query_stock_positions_async()
+    def get_positions(self) -> list[asset.XtPosition]:
+        return self._broker.query_stock_positions()
 
     def get_position(self, stock_code: str) -> asset.XtPosition:
         return self._broker.query_stock_position(stock_code)

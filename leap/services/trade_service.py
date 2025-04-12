@@ -12,14 +12,14 @@ class TradeService(object):
     async def cancel_stock_order_async(self, order_id: int) -> int:
         return await self._broker.cancel_order_stock_async(order_id)
 
-    async def query_stock_orders_async(self) -> list[trade.XtOrder]:
-        return await self._broker.query_stock_orders_async()
+    def query_stock_orders(self) -> list[trade.XtOrder]:
+        return self._broker.query_stock_orders()
 
-    async def query_stock_trades_async(self) -> list[trade.XtTrade]:
-        return await self._broker.query_stock_trades_async()
+    def query_stock_trades(self) -> list[trade.XtTrade]:
+        return self._broker.query_stock_trades()
 
-    async def query_ipo_listing_async(self) -> list[trade.IPOListing]:
-        return await self._broker.query_ipo_listing_async()
+    def query_ipo_listing(self) -> list[trade.IPOListing]:
+        return self._broker.query_ipo_listing()
 
-    async def query_ipo_purchase_limit_async(self) -> list[trade.NewStockPurchaseLimit]:
-        return await self._broker.query_new_stock_purchase_limit_sync()
+    def query_ipo_purchase_limit(self) -> list[trade.NewStockPurchaseLimit]:
+        return self._broker.query_new_stock_purchase_limit()
