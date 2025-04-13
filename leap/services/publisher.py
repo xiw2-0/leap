@@ -1,6 +1,6 @@
 import datetime as dt
 
-from leap.models import account, message, trade as trade_model
+from leap.models import account, message, trade as trade_model, asset as asset_model
 from leap.services import push_service, stats_service
 from leap.utils import model_util
 from xtquant import xttype, xttrader  # type: ignore
@@ -15,6 +15,9 @@ class XtPublisher(xttrader.XtQuantTraderCallback):
 
         self._tz = dt.timezone(dt.timedelta(hours=8))
 
+    def on_connected(self):
+        pass
+
     def on_disconnected(self):
         self._push_service.push_message(message.XtMessage(
             type=message.MessageType.DISCONNECTED,
@@ -27,6 +30,22 @@ class XtPublisher(xttrader.XtQuantTraderCallback):
             timestamp=self._datetime_now(),
             message=model_util.to_pydantic_model(
                 status, account.XtAccountStatus)
+        ))
+
+    def on_stock_asset(self, asset: xttype.XtAsset):
+        self._push_service.push_message(message.XtMessage(
+            type=message.MessageType.STOCK_ASSET,
+            timestamp=self._datetime_now(),
+            message=model_util.to_pydantic_model(
+                asset, asset_model.XtAsset)
+        ))
+
+    def on_stock_position(self, position: xttype.XtPosition):
+        self._push_service.push_message(message.XtMessage(
+            type=message.MessageType.STOCK_POSITION,
+            timestamp=self._datetime_now(),
+            message=model_util.to_pydantic_model(
+                position, asset_model.XtPosition)
         ))
 
     def on_stock_order(self, order: xttype.XtOrder):
@@ -80,6 +99,9 @@ class XtPublisher(xttrader.XtQuantTraderCallback):
             message=model_util.to_pydantic_model(
                 response, trade_model.XtCancelOrderResponse)
         ))
+
+    def on_smt_appointment_async_response(self, response: xttype.XtSmtAppointmentResponse):
+        pass
 
     def _datetime_now(self) -> dt.datetime:
         return dt.datetime.now(tz=self._tz)
