@@ -22,7 +22,7 @@ class StatsMiddleware(base.BaseHTTPMiddleware):
         process_time = time.perf_counter() - start_time
         response.headers["X-Process-Time"] = str(process_time)
 
-        self._stats_service.add_api_process_time(
+        self._stats_service.record_api_process_time(
             f"{request.method} {request.url.path}", process_time)
 
         return response

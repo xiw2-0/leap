@@ -1,7 +1,10 @@
+import datetime as dt
 import fastapi
+import time
 import typing
 
 from leap.models import quote
+from leap.services import stats_service
 from xtquant import xtdata  # type: ignore
 
 router = fastapi.APIRouter()
@@ -11,7 +14,7 @@ router = fastapi.APIRouter()
 def get_realtime_quote(stocks: list[str]) -> list[quote.Tick]:
     tick_dict: dict[str, dict[str, typing.Any]
                     ] = xtdata.get_full_tick(code_list=stocks)  # type: ignore
-    return [
+    ticks = [
         quote.Tick(
             stock_code=stock,
             time=tick['timetag'],
@@ -32,3 +35,8 @@ def get_realtime_quote(stocks: list[str]) -> list[quote.Tick]:
             bid_vols=tick["bidVol"],
         ) for stock, tick in tick_dict.items()
     ]
+
+    now = time.time()
+    stats_service.StatsService().record_data_delay(
+        [now - dt.datetime.strptime(tick.time, "%Y%m%d %H:%M:%S").timestamp() for tick in ticks])
+    return ticks

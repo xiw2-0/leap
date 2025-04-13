@@ -32,11 +32,9 @@ class StatsService(object):
 
             xtconstant.ORDER_JUNK: 'ORDER_JUNK',
         }
-        self._lock = threading.Lock()
 
-    def add_api_process_time(self, api_name: str, process_time: float) -> None:
-        with self._lock:
-            self._api_stats[api_name].append(process_time)
+        self._data_stats: list[float] = []
+        self._lock = threading.Lock()
 
     def get_api_stats(self) -> dict[str, float]:
         with self._lock:
@@ -61,6 +59,14 @@ class StatsService(object):
 
         return {key: sum(value) / len(value) for key, value in order_stats.items()}
 
+    def get_data_stats(self) -> float:
+        with self._lock:
+            return sum(self._data_stats) / len(self._data_stats)
+
+    def record_api_process_time(self, api_name: str, process_time: float) -> None:
+        with self._lock:
+            self._api_stats[api_name].append(process_time)
+
     def record_order_request_time(self, request_id: int):
         with self._lock:
             self._request_id_to_request_time[request_id] = time.perf_counter()
@@ -80,3 +86,7 @@ class StatsService(object):
                 return
             self._order_stats[order_id][self._ORDER_STATES[state]
                                         ] = time.perf_counter()
+
+    def record_data_delay(self, delays: list[float]):
+        with self._lock:
+            self._data_stats.extend(delays)

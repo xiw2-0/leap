@@ -18,3 +18,7 @@ def get_api_stats():
 @router.get("/order", summary="Get Order Delay Stats")
 def get_order_stats():
     return stats_service.StatsService().get_order_stats()
+
+@router.get("/data", summary="Get Data Delay Stats")
+def get_data_stats():
+    return stats_service.StatsService().get_data_stats()
