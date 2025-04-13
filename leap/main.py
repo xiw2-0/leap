@@ -1,13 +1,27 @@
+import asyncio
 import fastapi
 
+from contextlib import asynccontextmanager
 from leap.config import settings
 from leap.middlewares import stats_middleware
 from leap.routes import asset, push, trade, quote, stats, docs
+from leap.services import push_service
+
+
+@asynccontextmanager
+async def lifespan(app: fastapi.FastAPI):
+    # Start up
+    asyncio.create_task(push_service.PushService().notify_subscribers())
+
+    yield
+
+    # Clean up
 
 app = fastapi.FastAPI(
     title=settings.PROJECT_NAME,
     docs_url=None,
     default_response_class=fastapi.responses.ORJSONResponse,
+    lifespan=lifespan,
 )
 
 app.add_middleware(stats_middleware.StatsMiddleware)

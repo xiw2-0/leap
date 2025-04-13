@@ -86,7 +86,7 @@ class XtBroker(object):
                 self._xt_account)
             return model_util.to_pydantic_model(asset_, asset.XtAsset)
 
-    async def order_stock_async(self, order_request: trade.OrderStockRequest) -> int:
+    def order_stock_async(self, order_request: trade.OrderStockRequest) -> int:
         """返回下单请求序号, 成功委托后的下单请求序号为大于0的正整数, 如果为-1表示委托失败"""
         with self._lock:
             return self._xt_trader.order_stock_async(  # type: ignore
@@ -99,7 +99,7 @@ class XtBroker(object):
                 strategy_name=order_request.strategy_name,
                 order_remark=order_request.order_remark)
 
-    async def cancel_order_stock_async(self, order_id: int) -> int:
+    def cancel_order_stock_async(self, order_id: int) -> int:
         """返回撤单请求序号, 成功委托后的撤单请求序号为大于0的正整数, 如果为-1表示撤单失败"""
         with self._lock:
             return self._xt_trader.cancel_order_stock_async(  # type: ignore
