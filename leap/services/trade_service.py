@@ -1,10 +1,11 @@
 from leap.models import trade
-from leap.services import broker, stats_service
+from leap.services import broker, stats_service, export_reader
 
 
 class TradeService(object):
     def __init__(self) -> None:
         self._broker = broker.XtBroker()
+        self._export_reader = export_reader.ExportReader()
 
         self._stats_service = stats_service.StatsService()
 
@@ -27,3 +28,9 @@ class TradeService(object):
 
     def query_ipo_purchase_limit(self) -> list[trade.NewStockPurchaseLimit]:
         return self._broker.query_new_stock_purchase_limit()
+
+    def query_ipo_subscription_result(self):
+        return self._export_reader.read_ipo_lucky_info()
+
+    def query_ipo_subscription_number(self):
+        return self._export_reader.read_subscrib_number()

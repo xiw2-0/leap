@@ -34,3 +34,13 @@ async def query_ipo_listing() -> list[trade.IPOListing]:
 @router.get("/ipo/purchase_limit", response_model=list[trade.NewStockPurchaseLimit])
 async def query_ipo_purchase_limit() -> list[trade.NewStockPurchaseLimit]:
     return trade_service.TradeService().query_ipo_purchase_limit()
+
+
+@router.get("/ipo/subscription_number", response_model=list[trade.IPOSubscriptionNumber])
+def query_ipo_subscription_number():
+    return trade_service.TradeService().query_ipo_subscription_number()
+
+
+@router.get("/ipo/subscription_result", response_model=list[trade.IPOSubscriptionResult])
+def query_ipo_subscription_result():
+    return trade_service.TradeService().query_ipo_subscription_result()

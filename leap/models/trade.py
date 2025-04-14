@@ -178,3 +178,34 @@ class NewStockPurchaseLimit(pydantic.BaseModel):
     market: str = pydantic.Field(...,
                                  description="股票市场, KCB - 科创板，SH - 上海，SZ - 深圳")
     purchase_limit: int = pydantic.Field(..., description="申购额度, 单位为股")
+
+
+class IPOSubscriptionNumber(pydantic.BaseModel):
+    success: str = pydantic.Field(..., description="是否成功")
+    message: str = pydantic.Field(..., description="返回信息")
+    account_id: str = pydantic.Field(..., description="资金账号")
+    market: str = pydantic.Field(..., description="股票市场")
+    market_type: str = pydantic.Field(..., description="交易市场类别")
+    stock_code: str = pydantic.Field(..., description="股票代码")
+    stock_name: str = pydantic.Field(..., description="股票名称")
+    starting_allotment_number: int = pydantic.Field(..., description="起始配号")
+    allotment_count: int = pydantic.Field(..., description="配号数量")
+    holder_id: str = pydantic.Field(..., description="股东账号")
+    allotment_date: str = pydantic.Field(..., description="配号日期")
+    subscription_date: str = pydantic.Field(..., description="申购日期")
+
+class IPOSubscriptionResult(pydantic.BaseModel):
+    success: str = pydantic.Field(..., description="是否成功")
+    message: str = pydantic.Field(..., description="返回信息")
+    market_type: str = pydantic.Field(..., description="交易市场类别")
+    holder_id: str = pydantic.Field(..., description="股东账号")
+    stock_code: str = pydantic.Field(..., description="股票代码")
+    lottery_shares: int = pydantic.Field(..., description="中签数量")
+    lottery_price: float = pydantic.Field(..., description="中签价格")
+    lottery_amount: float = pydantic.Field(..., description="中签金额")
+    giveup_shares: int = pydantic.Field(..., description="放弃数量")
+    lottery_number: int = pydantic.Field(..., description="中签编号")
+    stock_name: str = pydantic.Field(..., description="股票名称")
+    lottery_date: str = pydantic.Field(..., description="中签日期")
+    subscription_date: str = pydantic.Field(..., description="申购日期")
+    account_id: str = pydantic.Field(..., description="资金账号")

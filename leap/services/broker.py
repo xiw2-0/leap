@@ -77,14 +77,14 @@ class XtBroker(object):
             # 等待 Future 完成，并获取结果
             asset_ = await future
 
-            return model_util.to_pydantic_model(asset_, asset.XtAsset)
+            return model_util.pydantic_model_from_object(asset_, asset.XtAsset)
 
     def query_stock_asset(self) -> asset.XtAsset:
         """同步查询股票资产信息"""
         with self._lock:
             asset_: xttype.XtAsset = self._xt_trader.query_stock_asset(  # type: ignore
                 self._xt_account)
-            return model_util.to_pydantic_model(asset_, asset.XtAsset)
+            return model_util.pydantic_model_from_object(asset_, asset.XtAsset)
 
     def order_stock_async(self, order_request: trade.OrderStockRequest) -> int:
         """返回下单请求序号, 成功委托后的下单请求序号为大于0的正整数, 如果为-1表示委托失败"""
@@ -116,7 +116,7 @@ class XtBroker(object):
             self._xt_trader.query_stock_positions_async(  # type: ignore
                 self._xt_account, callback)
             positions = await future
-            positions = [model_util.to_pydantic_model(position, asset.XtPosition)
+            positions = [model_util.pydantic_model_from_object(position, asset.XtPosition)
                          for position in positions]
             return positions
 
@@ -124,14 +124,14 @@ class XtBroker(object):
         with self._lock:
             positions: list[xttype.XtPosition] = self._xt_trader.query_stock_positions(  # type: ignore
                 self._xt_account)
-            return [model_util.to_pydantic_model(position, asset.XtPosition)  # type: ignore
+            return [model_util.pydantic_model_from_object(position, asset.XtPosition)  # type: ignore
                     for position in positions]  # type: ignore
 
     def query_stock_position(self, stock_code: str) -> asset.XtPosition:
         with self._lock:
             position: xttype.XtPosition = self._xt_trader.query_stock_position(  # type: ignore
                 self._xt_account, stock_code)
-            return model_util.to_pydantic_model(position, asset.XtPosition)
+            return model_util.pydantic_model_from_object(position, asset.XtPosition)
 
     async def query_stock_orders_async(self) -> list[trade.XtOrder]:
         with self._lock:
@@ -144,13 +144,13 @@ class XtBroker(object):
             self._xt_trader.query_stock_orders_async(  # type: ignore
                 self._xt_account, callback, cancelable_only=False)
             orders = await future
-            return [model_util.to_pydantic_model(order, trade.XtOrder) for order in orders]
+            return [model_util.pydantic_model_from_object(order, trade.XtOrder) for order in orders]
 
     def query_stock_orders(self) -> list[trade.XtOrder]:
         with self._lock:
             orders: list[xttype.XtOrder] = self._xt_trader.query_stock_orders(  # type: ignore
                 self._xt_account, cancelable_only=False)
-            return [model_util.to_pydantic_model(order, trade.XtOrder)  # type: ignore
+            return [model_util.pydantic_model_from_object(order, trade.XtOrder)  # type: ignore
                     for order in orders]  # type: ignore
 
     async def query_stock_trades_async(self) -> list[trade.XtTrade]:
@@ -164,13 +164,13 @@ class XtBroker(object):
             self._xt_trader.query_stock_trades_async(  # type: ignore
                 self._xt_account, callback)
             trades = await future
-            return [model_util.to_pydantic_model(t, trade.XtTrade) for t in trades]
+            return [model_util.pydantic_model_from_object(t, trade.XtTrade) for t in trades]
 
     def query_stock_trades(self) -> list[trade.XtTrade]:
         with self._lock:
             trades: list[xttype.XtTrade] = self._xt_trader.query_stock_trades(  # type: ignore
                 self._xt_account)
-            return [model_util.to_pydantic_model(t, trade.XtTrade)  # type: ignore
+            return [model_util.pydantic_model_from_object(t, trade.XtTrade)  # type: ignore
                     for t in trades]  # type: ignore
 
     def query_ipo_listing(self) -> list[trade.IPOListing]:

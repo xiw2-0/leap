@@ -28,7 +28,7 @@ class XtPublisher(xttrader.XtQuantTraderCallback):
         self._push_service.push_message(message.XtMessage(
             type=message.MessageType.ACCOUNT_STATUS,
             timestamp=self._datetime_now(),
-            message=model_util.to_pydantic_model(
+            message=model_util.pydantic_model_from_object(
                 status, account.XtAccountStatus)
         ))
 
@@ -36,7 +36,7 @@ class XtPublisher(xttrader.XtQuantTraderCallback):
         self._push_service.push_message(message.XtMessage(
             type=message.MessageType.STOCK_ASSET,
             timestamp=self._datetime_now(),
-            message=model_util.to_pydantic_model(
+            message=model_util.pydantic_model_from_object(
                 asset, asset_model.XtAsset)
         ))
 
@@ -44,7 +44,7 @@ class XtPublisher(xttrader.XtQuantTraderCallback):
         self._push_service.push_message(message.XtMessage(
             type=message.MessageType.STOCK_POSITION,
             timestamp=self._datetime_now(),
-            message=model_util.to_pydantic_model(
+            message=model_util.pydantic_model_from_object(
                 position, asset_model.XtPosition)
         ))
 
@@ -54,7 +54,7 @@ class XtPublisher(xttrader.XtQuantTraderCallback):
         self._push_service.push_message(message.XtMessage(
             type=message.MessageType.STOCK_ORDER,
             timestamp=self._datetime_now(),
-            message=model_util.to_pydantic_model(
+            message=model_util.pydantic_model_from_object(
                 order, trade_model.XtOrder)
         ))
 
@@ -62,7 +62,7 @@ class XtPublisher(xttrader.XtQuantTraderCallback):
         self._push_service.push_message(message.XtMessage(
             type=message.MessageType.STOCK_TRADE,
             timestamp=self._datetime_now(),
-            message=model_util.to_pydantic_model(
+            message=model_util.pydantic_model_from_object(
                 trade, trade_model.XtTrade)
         ))
 
@@ -70,7 +70,7 @@ class XtPublisher(xttrader.XtQuantTraderCallback):
         self._push_service.push_message(message.XtMessage(
             type=message.MessageType.ORDER_ERROR,
             timestamp=self._datetime_now(),
-            message=model_util.to_pydantic_model(
+            message=model_util.pydantic_model_from_object(
                 order_error, trade_model.XtOrderError)
         ))
 
@@ -78,7 +78,7 @@ class XtPublisher(xttrader.XtQuantTraderCallback):
         self._push_service.push_message(message.XtMessage(
             type=message.MessageType.CANCEL_ERROR,
             timestamp=self._datetime_now(),
-            message=model_util.to_pydantic_model(
+            message=model_util.pydantic_model_from_object(
                 cancel_error, trade_model.XtCancelError)
         ))
 
@@ -88,7 +88,7 @@ class XtPublisher(xttrader.XtQuantTraderCallback):
         self._push_service.push_message(message.XtMessage(
             type=message.MessageType.ORDER_STOCK_ASYNC_RESPONSE,
             timestamp=self._datetime_now(),
-            message=model_util.to_pydantic_model(
+            message=model_util.pydantic_model_from_object(
                 response, trade_model.XtOrderResponse)
         ))
 
@@ -96,7 +96,7 @@ class XtPublisher(xttrader.XtQuantTraderCallback):
         self._push_service.push_message(message.XtMessage(
             type=message.MessageType.CANCEL_ORDER_STOCK_ASYNC_RESPONSE,
             timestamp=self._datetime_now(),
-            message=model_util.to_pydantic_model(
+            message=model_util.pydantic_model_from_object(
                 response, trade_model.XtCancelOrderResponse)
         ))
 
