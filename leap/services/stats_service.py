@@ -43,7 +43,7 @@ class StatsService(object):
     def get_order_stats(self) -> dict[str, float]:
         order_stats: dict[str, list[float]] = collections.defaultdict(list)
         with self._lock:
-            for order_id, order_state_time in self._order_stats.items():
+            for _, order_state_time in self._order_stats.items():
                 if 'REQUEST' in order_state_time and 'RESPONSE' in order_state_time:
                     order_stats['REQUEST_TO_RESPONSE'].append(
                         order_state_time['RESPONSE'] - order_state_time['REQUEST'])
