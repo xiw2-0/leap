@@ -3,7 +3,7 @@ import pydantic_settings
 
 
 class Settings(pydantic_settings.BaseSettings):
-    model_config = pydantic_settings.SettingsConfigDict(env_file=".env")
+    model_config = pydantic_settings.SettingsConfigDict(env_file=".env", extra="ignore")
 
     PROJECT_NAME: str = "Leap - Web Trading APIs for China A-Share"
     HOST: str = "127.0.0.1"
