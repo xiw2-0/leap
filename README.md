@@ -79,7 +79,9 @@ wine XtItClient_x64.exe
 
 3. Configure and start the mini-QMT client with nohup:
 ```
-nohup wine .wine/drive_c/Program\ Files/qmt_test/bin.x64/XtMiniQmt.exe > qmt_client.log 2>&1 &
+# Start mini-QMT client with nohup, explicitly set DISPLAY and use setsid 
+# to create an independent session that doesn't depend on SSH
+nohup setsid env DISPLAY=:99 wine ~/.wine/drive_c/Program\ Files/qmt_test/bin.x64/XtMiniQmt.exe > qmt_client.log 2>&1 &
 ```
 
 ### 6. Prepare Configuration File
