@@ -60,13 +60,13 @@ export DISPLAY=:99
 
 ### 4. Install Python Under Wine
 
-Download and install Python 3.11.9 for Windows:
+Download and install Python 3.11.9 for Windows, https://docs.python.org/3.11/using/windows.html#installing-without-ui:
 
 ```
 wget https://www.python.org/ftp/python/3.11.9/python-3.11.9-amd64.exe
 
 # Install Python under Wine
-wine python-3.11.9-amd64.exe /quiet InstallAllUsers=1 PrependPath=1 Include_test=0
+wine python-3.11.9-amd64.exe /passive InstallAllUsers=1 PrependPath=1 Include_test=0 TargetDir="Z:/opt/winpy"
 ```
 
 ### 5. Install mini-QMT Client
@@ -77,11 +77,33 @@ wine python-3.11.9-amd64.exe /quiet InstallAllUsers=1 PrependPath=1 Include_test
 wine XtItClient_x64.exe
 ```
 
-3. Configure and start the mini-QMT client with nohup:
+3. Run QMT and copy link mini file for no UI start:
+```
+# Choose "独立交易"
+wine ~/.wine/drive_c/Program\ Files/qmt_test/bin.x64/XtItClient.exe
+
+# Switch to target directory
+cd ~/.wine/drive_c/Program\ Files/qmt_test/bin.x64
+
+echo "start"
+
+while true; do
+    if [ -f "linkMini" ]; then
+        cp linkMini /etc/xtqmt/linkMini
+        echo "finish"
+        break
+    fi
+    sleep 0.1
+done
+```
+
+4. Configure and start the mini-QMT client without UI in the background:
 ```
 # Start mini-QMT client with nohup, explicitly set DISPLAY and use setsid 
 # to create an independent session that doesn't depend on SSH
-nohup setsid env DISPLAY=:99 wine ~/.wine/drive_c/Program\ Files/qmt_test/bin.x64/XtMiniQmt.exe > qmt_client.log 2>&1 &
+cp ~/linkMini ~/.wine/drive_c/Program\ Files/qmt_test/bin.x64/
+
+nohup setsid env DISPLAY=:99 wine ~/.wine/drive_c/Program\ Files/qmt_test/bin.x64/XtMiniQmt.exe linkMini > qmt_client.log 2>&1 &
 ```
 
 ### 6. Prepare Configuration File
