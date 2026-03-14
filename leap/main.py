@@ -1,21 +1,28 @@
 import asyncio
 import fastapi
+import logging
 
 from contextlib import asynccontextmanager
 from leap.config import settings
 from leap.middlewares import stats_middleware
 from leap.routes import asset, push, trade, quote, stats, docs
 from leap.services import push_service
+from leap.utils.logging_config import setup_logging
 
 
 @asynccontextmanager
 async def lifespan(app: fastapi.FastAPI):
     # Start up
+    setup_logging()
+    logger = logging.getLogger(__name__)
+    logger.info("Starting Leap application...")
+    
     asyncio.create_task(push_service.PushService().notify_subscribers())
 
     yield
 
     # Clean up
+    logger.info("Shutting down Leap application...")
 
 app = fastapi.FastAPI(
     title=settings.PROJECT_NAME,

@@ -12,7 +12,10 @@ class Settings(pydantic_settings.BaseSettings):
     QMT_DATA_PATH: str = ""
     QMT_ACCOUNT: str = ""
     QMT_ACCOUNT_TYPE: str = pydantic.Field(default="STOCK", examples=["STOCK", "CREDIT"])
-    QMT_EXPORT_PATH: str = pydantic.Field(default=".", description="QMT导出数据的路径")
+    QMT_EXPORT_PATH: str = pydantic.Field(default=".", description="QMT 导出数据的路径")
+
+    LOG_LEVEL: str = pydantic.Field(default="INFO", description="Logging level (DEBUG, INFO, WARNING, ERROR, CRITICAL)")
+    LOG_DIR: str = pydantic.Field(default="logs", description="Directory for log files")
 
 
 settings = Settings()
