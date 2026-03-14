@@ -7,18 +7,20 @@ from leap.services import push_service
 
 
 router = fastapi.APIRouter()
+logger = logging.getLogger(__name__)
 
 
 @router.websocket("/push")
 async def trade_push(websocket: fastapi.WebSocket):
     await websocket.accept()
+    logger.info("WebSocket connection accepted")
 
     push_svc = push_service.PushService()  # singleton
     push_svc.add_connection(websocket)
 
     while websocket.client_state == fastapi.websockets.WebSocketState.CONNECTED and websocket.application_state == fastapi.websockets.WebSocketState.CONNECTED:
         await asyncio.sleep(20)
-    logging.debug(
+    logger.error(
         f"Websocket closed, application state: {websocket.application_state}, client state: {websocket.client_state}")
 
 html = """
