@@ -1,0 +1,19 @@
+[Unit]
+Description=Leap Trading API Server
+After=network.target xtqmt.service
+Wants=xtqmt.service
+
+[Service]
+Type=simple
+User=quant
+Group=quant
+WorkingDirectory=/home/quant/leap
+Environment=WINEPREFIX=/home/quant/.wine
+Environment=PATH=/usr/local/bin:/usr/bin:/bin
+ExecStartPre=/bin/bash -c 'while ! pgrep -f "XtMiniQmt.exe" >/dev/null 2>&1; do sleep 2; done'
+ExecStartPre=/bin/cp /home/quant/leap/.env /home/quant/
+ExecStart=/usr/bin/wine python -m uvicorn leap.main:app --host 0.0.0.0 --port 8000
+Restart=always
+
+[Install]
+WantedBy=multi-user.target

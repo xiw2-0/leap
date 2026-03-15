@@ -1,0 +1,20 @@
+[Unit]
+Description=XT mini-QMT Client
+Requires=xvfb.service
+After=xvfb.service
+
+[Service]
+Type=simple
+User=quant
+Environment=DISPLAY=:99
+Environment=WINEPREFIX=/home/quant/.wine
+WorkingDirectory=/home/quant/.wine/drive_c/Program Files/qmt_test/bin.x64
+ExecStartPre=/bin/sh -c 'while ! xdpyinfo -display :99 >/dev/null 2>&1; do sleep 1; done'
+ExecStartPre=/bin/cp /home/quant/linkMini "/home/quant/.wine/drive_c/Program Files/qmt_test/bin.x64/"
+ExecStart=/usr/bin/wine XtMiniQmt.exe linkMini
+Restart=always
+ExecStop=/usr/bin/wineserver -k
+KillMode=mixed
+
+[Install]
+WantedBy=multi-user.target
