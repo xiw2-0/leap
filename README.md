@@ -41,7 +41,15 @@ Install Chinese fonts to ensure proper display of Chinese characters in the mini
 sudo apt install -y fonts-wqy-zenhei fonts-wqy-microhei
 ```
 
-### 3. Set Up Virtual Display
+### 3. Set timezone to Shanghai for better logging display
+
+Set timezone to Asia/Shanghi
+```
+sudo timedatectl set-timezone Asia/Shanghai
+```
+
+
+### 4. Set Up Virtual Display
 
 To run Windows GUI applications (like mini-QMT) under Wine, you need to set up a virtual display:
 
@@ -58,7 +66,7 @@ nohup x11vnc -display :99 -forever -passwd 123 -shared > x11vnc.log 2>&1 &
 export DISPLAY=:99
 ```
 
-### 4. Install Python Under Wine
+### 5. Install Python Under Wine
 
 Download and install Python 3.11.9 for Windows, https://docs.python.org/3.11/using/windows.html#installing-without-ui:
 
@@ -69,7 +77,7 @@ wget https://www.python.org/ftp/python/3.11.9/python-3.11.9-amd64.exe
 wine python-3.11.9-amd64.exe /passive InstallAllUsers=1 PrependPath=1 Include_test=0 TargetDir="Z:/opt/winpy"
 ```
 
-### 5. Install mini-QMT Client
+### 6. Install mini-QMT Client
 
 1. Download the mini-QMT client (XtItClient_x64.exe) from your broker
 2. Run the installer under Wine:
@@ -106,7 +114,7 @@ cp ~/linkMini ~/.wine/drive_c/Program\ Files/qmt_test/bin.x64/
 nohup setsid env DISPLAY=:99 wine ~/.wine/drive_c/Program\ Files/qmt_test/bin.x64/XtMiniQmt.exe linkMini > qmt_client.log 2>&1 &
 ```
 
-### 6. Prepare Configuration File
+### 7. Prepare Configuration File
 
 Create a .env file to store configuration settings:
 
@@ -118,7 +126,7 @@ echo "# LEAP_HOST=0.0.0.0" >> .env
 echo "# LEAP_PORT=8000" >> .env
 ```
 
-### 7. Install Leap Trading API
+### 8. Install Leap Trading API
 
 1. Install pip upgrade (under Wine):
 ```
@@ -130,7 +138,7 @@ wine python -m pip install --upgrade pip
 wine python -m pip install leap-0.1.0-py3-none-any.whl
 ```
 
-### 8. Run the Leap API Server
+### 9. Run the Leap API Server
 
 Start the Leap API server in the background with nohup to ensure it continues running after SSH session ends:
 
