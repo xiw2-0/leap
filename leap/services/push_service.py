@@ -38,7 +38,7 @@ class PushService(object):
             xt_message = self._message_queue.get(block=False)
             with self._lock:
                 if not self._active_connections:
-                    return
+                    continue
 
                 remove_list: list[fastapi.WebSocket] = []
                 for connection in self._active_connections:
