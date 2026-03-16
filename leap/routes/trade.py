@@ -6,14 +6,24 @@ from leap.services import trade_service
 router = fastapi.APIRouter()
 
 
-@router.post("/orders", response_model=int, summary="Submit stock order async", response_description="Order request id")
+@router.post("/orders/async", response_model=int, summary="Submit stock order async", response_description="Order request id")
 async def submit_stock_order_async(order_request: trade.OrderStockRequest) -> int:
     return trade_service.TradeService().submit_stock_order_async(order_request)
 
 
-@router.delete("/orders/{order_id}", response_model=int, summary="Cancel stock order async", response_description="Cancel order request id")
+@router.post("/orders/sync", response_model=int, summary="Submit stock order sync", response_description="Order ID (positive for success, -1 for failure)")
+def submit_stock_order_sync(order_request: trade.OrderStockRequest) -> int:
+    return trade_service.TradeService().submit_stock_order_sync(order_request)
+
+
+@router.delete("/orders/{order_id}/async", response_model=int, summary="Cancel stock order async", response_description="Cancel order request id")
 async def cancel_stock_order_async(order_id: int) -> int:
     return trade_service.TradeService().cancel_stock_order_async(order_id)
+
+
+@router.delete("/orders/{order_id}/sync", response_model=int, summary="Cancel stock order sync", response_description="0 for success, -1 for failure")
+def cancel_stock_order_sync(order_id: int) -> int:
+    return trade_service.TradeService().cancel_stock_order_sync(order_id)
 
 
 @router.get("/orders", response_model=list[trade.XtOrder])

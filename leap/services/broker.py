@@ -99,10 +99,29 @@ class XtBroker(object):
                 strategy_name=order_request.strategy_name,
                 order_remark=order_request.order_remark)
 
+    def order_stock_sync(self, order_request: trade.OrderStockRequest) -> int:
+        """同步下单，返回订单ID（正整数表示成功，-1表示失败）"""
+        with self._lock:
+            return self._xt_trader.order_stock(  # type: ignore
+                account=self._xt_account,
+                stock_code=order_request.stock_code,
+                order_type=order_request.order_type,
+                order_volume=order_request.order_volume,
+                price_type=order_request.price_type,
+                price=order_request.price,
+                strategy_name=order_request.strategy_name,
+                order_remark=order_request.order_remark)
+
     def cancel_order_stock_async(self, order_id: int) -> int:
         """返回撤单请求序号, 成功委托后的撤单请求序号为大于0的正整数, 如果为-1表示撤单失败"""
         with self._lock:
             return self._xt_trader.cancel_order_stock_async(  # type: ignore
+                self._xt_account, order_id)
+
+    def cancel_order_stock_sync(self, order_id: int) -> int:
+        """同步撤单，返回0表示成功，-1表示失败"""
+        with self._lock:
+            return self._xt_trader.cancel_order_stock(  # type: ignore
                 self._xt_account, order_id)
 
     async def query_stock_positions_async(self) -> list[asset.XtPosition]:
@@ -176,7 +195,8 @@ class XtBroker(object):
     def query_ipo_listing(self) -> list[trade.IPOListing]:
         with self._lock:
             ipo_data_dict: dict[str, dict[str, typing.Any]] = \
-                self._xt_trader.query_ipo_data()  # type: ignore
+                typing.cast(dict[str, dict[str, typing.Any]],
+                            self._xt_trader.query_ipo_data())  # type: ignore
             return [
                 trade.IPOListing(
                     name=item['name'],
@@ -193,8 +213,8 @@ class XtBroker(object):
         """Query new stock purchase limit. 查询新股申购额度. 债券的申购额度固定10000张"""
         with self._lock:
             new_stock_purchase_limits: dict[str, int] = \
-                self._xt_trader.query_new_purchase_limit(  # type: ignore
-                    account=self._xt_account)
+                typing.cast(dict[str, int], self._xt_trader.query_new_purchase_limit(  # type: ignore
+                    account=self._xt_account))
             return [
                 trade.NewStockPurchaseLimit(
                     market=key,
