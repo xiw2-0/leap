@@ -8,6 +8,7 @@ Type=simple
 User=quant
 Group=quant
 WorkingDirectory=/home/quant/leap
+Environment=PYTHONUTF8=1
 Environment=WINEPREFIX=/home/quant/.wine
 Environment=PATH=/usr/local/bin:/usr/bin:/bin
 ExecStartPre=/bin/bash -c 'while ! pgrep -f "XtMiniQmt.exe" >/dev/null 2>&1; do sleep 2; done'
