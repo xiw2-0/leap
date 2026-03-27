@@ -3,7 +3,7 @@ Description=X Virtual Frame Buffer
 
 [Service]
 Type=simple
-User=quant
+User=leap
 ExecStart=/usr/bin/Xvfb :99 -screen 0 800x600x16
 Restart=always
 

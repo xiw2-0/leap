@@ -13,23 +13,34 @@ Leap is a Web API framework built on top of mini-QMT (also known as xtquant) for
 ### 1. Install Wine
 
 Add 32-bit architecture support:
-```
+```bash
 sudo dpkg --add-architecture i386
 ```
 
-Add Wine repository key:
-```
-sudo mkdir -pm755 /etc/apt/keyrings
-wget -O- https://dl.winehq.org/wine-builds/winehq.key | gpg --dearmor | sudo tee /etc/apt/keyrings/winehq-archive.key
-```
-
-Add Wine repository:
-```
-sudo wget -NP /etc/apt/sources.list.d/ https://dl.winehq.org/wine-builds/ubuntu/dists/$(lsb_release -sc)/winehq-$(lsb_release -sc).sources
+Remove existing Wine configuration (if any):
+```bash
+sudo rm -f /etc/apt/sources.list.d/winehq.*
 ```
 
-Install Wine:
+Download Wine official GPG key:
+```bash
+sudo mkdir -p /etc/apt/keyrings
+sudo wget -O /etc/apt/keyrings/winehq-archive.key https://dl.winehq.org/wine-builds/winehq.key
 ```
+
+Add Tsinghua University mirror source (DEB822 format, for Ubuntu 22.04/jammy):
+```bash
+sudo tee /etc/apt/sources.list.d/winehq.sources > /dev/null <<EOF
+Types: deb
+URIs: https://mirrors.tuna.tsinghua.edu.cn/wine-builds/ubuntu/
+Suites: jammy
+Components: main
+Signed-By: /etc/apt/keyrings/winehq-archive.key
+EOF
+```
+
+Update package list and install Wine:
+```bash
 sudo apt update
 sudo apt install --install-recommends winehq-stable
 ```
@@ -57,10 +68,10 @@ To run Windows GUI applications (like mini-QMT) under Wine, you need to set up a
 sudo apt install -y xvfb x11vnc
 
 # Start virtual framebuffer with nohup to ensure it persists after SSH logout
-nohup Xvfb :99 -screen 0 800x600x16 > xvfb.log 2>&1 &
+nohup Xvfb :99 -screen 0 1920x1080x16 > xvfb.log 2>&1 &
 
 # Start VNC server for remote access (optional) with nohup
-nohup x11vnc -display :99 -forever -passwd 123 -shared > x11vnc.log 2>&1 &
+nohup x11vnc -display :99 -rfbport 5901 -forever -passwd 123 -shared > x11vnc.log 2>&1 &
 
 # Export display
 export DISPLAY=:99
@@ -74,12 +85,13 @@ Download and install Python 3.11.9 for Windows, https://docs.python.org/3.11/usi
 wget https://www.python.org/ftp/python/3.11.9/python-3.11.9-amd64.exe
 
 # Install Python under Wine
-wine python-3.11.9-amd64.exe /passive InstallAllUsers=1 PrependPath=1 Include_test=0 TargetDir="Z:/opt/winpy"
+WINEPREFIX=/opt/leap/wine wine python-3.11.9-amd64.exe /passive InstallAllUsers=1 PrependPath=1 Include_test=0 TargetDir="Z:/opt/leap/python"
 ```
 
 ### 6. Install mini-QMT Client
 
-1. Download the mini-QMT client (XtItClient_x64.exe) from your broker
+1. Download the mini-QMT client (XtItClient_x64.exe) from your broker. Remember to remove Chinese characters from the filename.
+   - Download link (Guojin Securities): https://download.gjzq.com.cn/gjty/organ/gjzqqmt.rar
 2. Run the installer under Wine:
 ```
 wine XtItClient_x64.exe
@@ -88,16 +100,16 @@ wine XtItClient_x64.exe
 3. Run QMT and copy link mini file for no UI start:
 ```
 # Choose "独立交易"
-wine ~/.wine/drive_c/Program\ Files/qmt_test/bin.x64/XtItClient.exe
+wine /opt/leap/qmt/bin.x64/XtItClient.exe
 
 # Switch to target directory
-cd ~/.wine/drive_c/Program\ Files/qmt_test/bin.x64
+cd /opt/leap/qmt/bin.x64
 
 echo "start"
 
 while true; do
     if [ -f "linkMini" ]; then
-        cp linkMini /etc/xtqmt/linkMini
+        cp linkMini /home/x/linkMini
         echo "finish"
         break
     fi
