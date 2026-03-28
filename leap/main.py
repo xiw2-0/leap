@@ -16,8 +16,8 @@ async def lifespan(app: fastapi.FastAPI):
     setup_logging()
     logger = logging.getLogger(__name__)
     logger.info("Starting Leap application...")
-    
-    asyncio.create_task(push_service.PushService().notify_subscribers())
+
+    push_service.PushService().set_event_loop(asyncio.get_event_loop())
 
     yield
 
