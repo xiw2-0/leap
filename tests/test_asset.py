@@ -14,7 +14,8 @@ class TestAsset(unittest.IsolatedAsyncioTestCase):
     @patch('leap.services.broker.XtBroker')
     async def test_get_asset(self, mock_xtbroker: typing.Any):
         mock_instance = mock_xtbroker.return_value
-        mock_instance.query_stock_asset_async = unittest.mock.AsyncMock(return_value=asset.XtAsset(
+        # Mock the synchronous method that is actually called by AssetService
+        mock_instance.query_stock_asset = unittest.mock.Mock(return_value=asset.XtAsset(
             account_id="123456",
             account_type=1,
             cash=5000,
@@ -23,7 +24,8 @@ class TestAsset(unittest.IsolatedAsyncioTestCase):
             total_asset=10000,
         ))
 
-        response = client.get("/asset")
+        # Call the correct endpoint with prefix: /asset/account
+        response = client.get("/asset/account")
         assert response.status_code == 200
         assert response.json() == {
             'account_type': 1, 'account_id': '123456', 'cash': 5000.0,
