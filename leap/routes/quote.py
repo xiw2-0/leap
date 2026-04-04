@@ -11,7 +11,7 @@ router = fastapi.APIRouter()
 
 
 @router.post("/realtime", summary="Get realtime quote from XT Data")
-def get_realtime_quote(stocks: list[str]) -> list[quote.Tick]:
+async def get_realtime_quote(stocks: list[str]) -> list[quote.Tick]:
     tick_dict: dict[str, dict[str, typing.Any]
                     ] = xtdata.get_full_tick(code_list=stocks)  # type: ignore
     ticks = [

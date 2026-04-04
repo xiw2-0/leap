@@ -2,7 +2,8 @@ import asyncio
 import fastapi
 import logging
 
-from leap.models import message
+from leap.models import message, trade
+from leap.services import stats_service
 from leap.utils import singleton
 
 
@@ -14,6 +15,7 @@ class PushService(object):
         self._active_connections: list[fastapi.WebSocket] = []
 
         self._logger = logging.getLogger(__name__)
+        self._stats_service = stats_service.StatsService()
 
     def set_event_loop(self, loop: asyncio.AbstractEventLoop) -> None:
         self._loop = loop
@@ -34,6 +36,9 @@ class PushService(object):
         )
 
     async def notify_subscribers(self, xt_message: message.XtMessage):
+        # Record stats before notifying subscribers
+        await self._record_stats(xt_message)
+
         if not self._active_connections:
             self._logger.info(
                 "No active WebSocket connections to push message to.")
@@ -51,3 +56,20 @@ class PushService(object):
                 remove_list.append(connection)
         for conn in remove_list:
             self._active_connections.remove(conn)
+
+    async def _record_stats(self, xt_message: message.XtMessage):
+        """Record statistics based on message type."""
+        msg_type = xt_message.type
+        msg_content = xt_message.message
+
+        if msg_type == message.MessageType.STOCK_ORDER and msg_content is not None:
+            # Only XtOrder has order_id and order_status
+            if isinstance(msg_content, trade.XtOrder):
+                self._stats_service.record_order_state_time(
+                    msg_content.order_id, msg_content.order_status)
+
+        elif msg_type == message.MessageType.ORDER_STOCK_ASYNC_RESPONSE and msg_content is not None:
+            # Only XtOrderResponse has seq and order_id
+            if isinstance(msg_content, trade.XtOrderResponse):
+                self._stats_service.record_order_response_time(
+                    msg_content.seq, msg_content.order_id)

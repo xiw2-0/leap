@@ -1,7 +1,7 @@
 import datetime as dt
 
 from leap.models import account, message, trade as trade_model, asset as asset_model
-from leap.services import push_service, stats_service
+from leap.services import push_service
 from leap.utils import model_util
 from xtquant import xttype, xttrader  # type: ignore
 
@@ -11,7 +11,6 @@ class XtPublisher(xttrader.XtQuantTraderCallback):
 
     def __init__(self) -> None:
         self._push_service = push_service.PushService()
-        self._stats_service = stats_service.StatsService()
 
         self._tz = dt.timezone(dt.timedelta(hours=8))
 
@@ -49,8 +48,6 @@ class XtPublisher(xttrader.XtQuantTraderCallback):
         ))
 
     def on_stock_order(self, order: xttype.XtOrder):
-        self._stats_service.record_order_state_time(
-            order.order_id, order.order_status)  # type: ignore
         self._push_service.push_message(message.XtMessage(
             type=message.MessageType.STOCK_ORDER,
             timestamp=self._datetime_now(),
@@ -83,8 +80,6 @@ class XtPublisher(xttrader.XtQuantTraderCallback):
         ))
 
     def on_order_stock_async_response(self, response: xttype.XtOrderResponse):
-        self._stats_service.record_order_response_time(
-            response.seq, response.order_id)  # type: ignore
         self._push_service.push_message(message.XtMessage(
             type=message.MessageType.ORDER_STOCK_ASYNC_RESPONSE,
             timestamp=self._datetime_now(),

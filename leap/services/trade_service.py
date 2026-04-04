@@ -18,7 +18,7 @@ class TradeService(object):
         logger.info(
             f"Submitting stock order async: {order_request.model_dump()}")
         seq = self._broker.order_stock_async(order_request)
-        self._stats_service.record_order_request_time(seq)
+        self._stats_service.record_order_request_time(seq, None)
         logger.info(f"Order submitted successfully. Sequence: {seq}")
         return seq
 
@@ -27,6 +27,7 @@ class TradeService(object):
         logger.info(
             f"Submitting stock order sync: {order_request.model_dump()}")
         order_id = self._broker.order_stock_sync(order_request)
+        self._stats_service.record_order_request_time(None, order_id)
         logger.info(f"Sync order submitted successfully. Order ID: {order_id}")
         return order_id
 
