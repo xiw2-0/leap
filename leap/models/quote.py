@@ -5,7 +5,7 @@ class Tick(pydantic.BaseModel):
     """Tick."""
 
     stock_code: str = pydantic.Field(..., description="股票代码")
-    time: str = pydantic.Field(..., description="时间戳")
+    time: int = pydantic.Field(..., description="Unix时间戳，单位为毫秒")
     last_price: float = pydantic.Field(..., description="最新价")
     open: float = pydantic.Field(..., description="开盘价")
     high: float = pydantic.Field(..., description="最高价")

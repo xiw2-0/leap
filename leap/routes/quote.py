@@ -1,4 +1,3 @@
-import datetime as dt
 import fastapi
 import time
 import typing
@@ -9,15 +8,18 @@ from xtquant import xtdata  # type: ignore
 
 router = fastapi.APIRouter()
 
+TRADING_SESSIONS_SEC = [9 * 3600 + 30 * 60, 11 * 3600 +
+                        30 * 60, 13 * 3600, 15 * 3600]  # 9:30-11:30, 13:00-15:00
 
-@router.post("/realtime", summary="Get realtime quote from XT Data")
-async def get_realtime_quote(stocks: list[str]) -> list[quote.Tick]:
+
+@router.get("/tick", summary="Get realtime tick quote from XT Data")
+async def get_realtime_quote(stocks: list[str] = fastapi.Query(...)) -> list[quote.Tick]:
     tick_dict: dict[str, dict[str, typing.Any]
                     ] = xtdata.get_full_tick(code_list=stocks)  # type: ignore
     ticks = [
         quote.Tick(
             stock_code=stock,
-            time=tick['timetag'],
+            time=tick['time'],
             last_price=tick['lastPrice'],
             open=tick['open'],
             high=tick['high'],
@@ -36,7 +38,12 @@ async def get_realtime_quote(stocks: list[str]) -> list[quote.Tick]:
         ) for stock, tick in tick_dict.items()
     ]
 
-    now = time.time()
-    stats_service.StatsService().record_data_delay(
-        [now - dt.datetime.strptime(tick.time, "%Y%m%d %H:%M:%S").timestamp() for tick in ticks])
+    # Record only when in trading sessions (9:30-11:30, 13:00-15:00)
+    localtime = time.localtime()
+    localtime_sec = localtime.tm_hour * 3600 + \
+        localtime.tm_min * 60 + localtime.tm_sec
+    if TRADING_SESSIONS_SEC[0] <= localtime_sec <= TRADING_SESSIONS_SEC[1] or TRADING_SESSIONS_SEC[2] <= localtime_sec <= TRADING_SESSIONS_SEC[3]:
+        now_ms = time.time() * 1000
+        stats_service.StatsService().record_data_delay(
+            [now_ms - tick.time for tick in ticks])
     return ticks
