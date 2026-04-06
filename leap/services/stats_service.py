@@ -34,6 +34,26 @@ class StatsService(object):
 
         self._data_stats: list[float] = []
 
+    def clear_stats(self) -> None:
+        """Clear all stored statistics data."""
+        self._api_stats.clear()
+        self._order_stats.clear()
+        self._request_id_to_request_time.clear()
+        self._data_stats.clear()
+
+    def clear_api_stats(self) -> None:
+        """Clear only API statistics data."""
+        self._api_stats.clear()
+
+    def clear_order_stats(self) -> None:
+        """Clear only order statistics data."""
+        self._order_stats.clear()
+        self._request_id_to_request_time.clear()
+
+    def clear_data_stats(self) -> None:
+        """Clear only data statistics data."""
+        self._data_stats.clear()
+
     def get_api_stats(self) -> dict[str, float]:
         return {key: sum(value) / len(value) for key, value in self._api_stats.items()}
 
@@ -56,6 +76,8 @@ class StatsService(object):
         return {key: sum(value) / len(value) for key, value in order_stats.items()}
 
     def get_data_stats(self) -> float:
+        if not self._data_stats:
+            return 0.0  # Return 0.0 instead of raising an exception for empty list
         return sum(self._data_stats) / len(self._data_stats)
 
     def record_api_process_time(self, api_name: str, process_time: float) -> None:
