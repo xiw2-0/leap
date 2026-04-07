@@ -5,6 +5,43 @@ from leap.utils import singleton
 from xtquant import xtconstant  # type: ignore
 
 
+def calculate_percentiles(values: list[float]) -> dict[str, float]:
+    """
+    Calculate and return a dictionary of percentiles for a list of values.
+    Returns: {Min, P25, P50, P75, P90, P95, P99, P99.9, Max}
+    """
+    if not values:
+        return {}
+
+    sorted_values = sorted(values)
+    n = len(sorted_values)
+
+    def get_percentile(p: float) -> float:
+        # Calculate index using linear interpolation method
+        rank = (p / 100.0) * (n - 1)
+        lower_idx = int(rank)
+        upper_idx = min(lower_idx + 1, n - 1)
+
+        # Linear interpolation between adjacent values
+        weight = rank - lower_idx
+        if lower_idx == upper_idx:
+            return sorted_values[lower_idx]
+        else:
+            return sorted_values[lower_idx] * (1 - weight) + sorted_values[upper_idx] * weight
+
+    return {
+        'min': sorted_values[0],
+        'p25': get_percentile(25),
+        'p50': get_percentile(50),  # median
+        'p75': get_percentile(75),
+        'p90': get_percentile(90),
+        'p95': get_percentile(95),
+        'p99': get_percentile(99),
+        'p99_9': get_percentile(99.9),
+        'max': sorted_values[-1]
+    }
+
+
 @singleton.singleton
 class StatsService(object):
     def __init__(self) -> None:
@@ -13,7 +50,7 @@ class StatsService(object):
         self._order_stats: dict[int, dict[str, float]] = {}
         self._request_id_to_request_time: dict[int, float] = {}
 
-        self._ORDER_STATES = {
+        self._ORDER_STATES: dict[int, str] = {
             xtconstant.ORDER_UNKNOWN: 'ORDER_UNKNOWN',
 
             xtconstant.ORDER_UNREPORTED: 'ORDER_UNREPORTED',
@@ -32,7 +69,7 @@ class StatsService(object):
             xtconstant.ORDER_JUNK: 'ORDER_JUNK',
         }
 
-        self._data_stats: list[float] = []
+        self._data_stats: list[float] = []  # Fixed: was incorrectly set to {}
 
     def clear_stats(self) -> None:
         """Clear all stored statistics data."""
@@ -54,10 +91,10 @@ class StatsService(object):
         """Clear only data statistics data."""
         self._data_stats.clear()
 
-    def get_api_stats(self) -> dict[str, float]:
-        return {key: sum(value) / len(value) for key, value in self._api_stats.items()}
+    def get_api_stats(self) -> dict[str, dict[str, float]]:
+        return {key: calculate_percentiles(value) for key, value in self._api_stats.items()}
 
-    def get_order_stats(self) -> dict[str, float]:
+    def get_order_stats(self) -> dict[str, dict[str, float]]:
         order_stats: dict[str, list[float]] = collections.defaultdict(list)
         for _, order_state_time in self._order_stats.items():
             if 'REQUEST' in order_state_time and 'RESPONSE' in order_state_time:
@@ -73,12 +110,10 @@ class StatsService(object):
                 order_stats['REPORTED_TO_SUCCEEDED'].append(
                     order_state_time['ORDER_SUCCEEDED'] - order_state_time['ORDER_REPORTED'])
 
-        return {key: sum(value) / len(value) for key, value in order_stats.items()}
+        return {key: calculate_percentiles(value) for key, value in order_stats.items()}
 
-    def get_data_stats(self) -> float:
-        if not self._data_stats:
-            return 0.0  # Return 0.0 instead of raising an exception for empty list
-        return sum(self._data_stats) / len(self._data_stats)
+    def get_data_stats(self) -> dict[str, float]:
+        return calculate_percentiles(self._data_stats)
 
     def record_api_process_time(self, api_name: str, process_time: float) -> None:
         self._api_stats[api_name].append(process_time)
@@ -90,13 +125,13 @@ class StatsService(object):
             self._order_stats[order_id] = {}
             self._order_stats[order_id]['REQUEST'] = time.perf_counter()
 
-    def record_order_response_time(self, request_id: int, order_id: int):
+    def record_order_response_time(self, request_id: int, order_id: int) -> None:
         if order_id not in self._order_stats:
             self._order_stats[order_id] = {}
         self._order_stats[order_id]['REQUEST'] = self._request_id_to_request_time[request_id]
         self._order_stats[order_id]['RESPONSE'] = time.perf_counter()
 
-    def record_order_state_time(self, order_id: int, state: int):
+    def record_order_state_time(self, order_id: int, state: int) -> None:
         if order_id not in self._order_stats:
             self._order_stats[order_id] = {}
         if state == xtconstant.ORDER_PART_SUCC and self._ORDER_STATES[state] in self._order_stats[order_id]:
@@ -104,5 +139,5 @@ class StatsService(object):
         self._order_stats[order_id][self._ORDER_STATES[state]
                                     ] = time.perf_counter()
 
-    def record_data_delay(self, delays: list[float]):
+    def record_data_delay(self, delays: list[float]) -> None:
         self._data_stats.extend(delays)
