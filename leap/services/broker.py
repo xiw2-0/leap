@@ -6,7 +6,7 @@ import typing
 
 from leap.config import settings
 from leap.models import asset, trade
-from leap.services import publisher
+from leap.services import trade_callback
 from leap.utils import singleton, model_util
 
 from xtquant import xttrader, xttype  # type: ignore
@@ -18,9 +18,9 @@ class XtBroker(object):
         qmt_data_path = settings.QMT_DATA_PATH
         self._xt_trader = self._setup_xt_trader(path=qmt_data_path)
 
-        xt_publisher = publisher.XtPublisher()
+        trade_cb = trade_callback.TradeCallback()
         self._xt_trader.register_callback(  # type: ignore
-            callback=xt_publisher)
+            callback=trade_cb)
 
         self._xt_account = self._setup_xt_account(
             settings.QMT_ACCOUNT, settings.QMT_ACCOUNT_TYPE, self._xt_trader)

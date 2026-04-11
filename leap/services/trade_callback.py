@@ -6,8 +6,8 @@ from leap.utils import model_util
 from xtquant import xttype, xttrader  # type: ignore
 
 
-class XtPublisher(xttrader.XtQuantTraderCallback):
-    """XT Trader status publisher."""
+class TradeCallback(xttrader.XtQuantTraderCallback):
+    """XT Trader callback implementation. It receives trading events from XT Trader and pushes them to the push service."""
 
     def __init__(self) -> None:
         self._push_service = push_service.PushService()
