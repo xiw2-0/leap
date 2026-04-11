@@ -2,7 +2,7 @@ import datetime as dt
 import enum
 import pydantic
 
-from leap.models import account, trade, asset
+from leap.models import account, trade, asset, quote
 
 
 class MessageType(enum.Enum):
@@ -16,10 +16,11 @@ class MessageType(enum.Enum):
     ORDER_STOCK_ASYNC_RESPONSE = 'ORDER_STOCK_ASYNC_RESPONSE'
     CANCEL_ORDER_STOCK_ASYNC_RESPONSE = 'CANCEL_ORDER_STOCK_ASYNC_RESPONSE'
     ACCOUNT_STATUS = 'ACCOUNT_STATUS'
+    WHOLE_QUOTE_UPDATE = 'WHOLE_QUOTE_UPDATE'
 
 
 class XtMessage(pydantic.BaseModel):
     type: MessageType
     timestamp: dt.datetime
 
-    message: account.XtAccountStatus | trade.XtOrder | trade.XtTrade | asset.XtAsset | asset.XtPosition | trade.XtOrderError | trade.XtCancelError | trade.XtOrderResponse | trade.XtCancelOrderResponse | None
+    message: account.XtAccountStatus | trade.XtOrder | trade.XtTrade | asset.XtAsset | asset.XtPosition | trade.XtOrderError | trade.XtCancelError | trade.XtOrderResponse | trade.XtCancelOrderResponse | quote.Tick | None

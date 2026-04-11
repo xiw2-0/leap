@@ -1,6 +1,8 @@
 import asyncio
+import datetime as dt
 import fastapi
 import logging
+import typing
 
 from leap.models import message, trade
 from leap.services import stats_service
@@ -34,6 +36,15 @@ class PushService(object):
             self.notify_subscribers(xt_message),
             self._loop
         )
+
+    def push_quotes(self, datetime: dt.datetime, quotes: dict[str, dict[str, typing.Any]]):
+        """Push quote updates to message queue.
+
+        Args:
+            datetime (dt.datetime): The time when the quotes were received.
+            quotes (dict[str, dict[str, typing.Any]]): The quotes to be pushed.
+        """
+        self._logger.info(f"{len(quotes)} quotes to be pushed. Received at {datetime.isoformat()}")
 
     async def notify_subscribers(self, xt_message: message.XtMessage):
         # Record stats before notifying subscribers
