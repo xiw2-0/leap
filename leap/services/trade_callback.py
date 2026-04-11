@@ -18,13 +18,13 @@ class TradeCallback(xttrader.XtQuantTraderCallback):
         pass
 
     def on_disconnected(self):
-        self._push_service.push_message(message.XtMessage(
+        self._push_service.push_trade_message(message.XtMessage(
             type=message.MessageType.DISCONNECTED,
             timestamp=self._datetime_now(),
             message=None))
 
     def on_account_status(self, status: xttype.XtAccountStatus):
-        self._push_service.push_message(message.XtMessage(
+        self._push_service.push_trade_message(message.XtMessage(
             type=message.MessageType.ACCOUNT_STATUS,
             timestamp=self._datetime_now(),
             message=model_util.pydantic_model_from_object(
@@ -32,7 +32,7 @@ class TradeCallback(xttrader.XtQuantTraderCallback):
         ))
 
     def on_stock_asset(self, asset: xttype.XtAsset):
-        self._push_service.push_message(message.XtMessage(
+        self._push_service.push_trade_message(message.XtMessage(
             type=message.MessageType.STOCK_ASSET,
             timestamp=self._datetime_now(),
             message=model_util.pydantic_model_from_object(
@@ -40,7 +40,7 @@ class TradeCallback(xttrader.XtQuantTraderCallback):
         ))
 
     def on_stock_position(self, position: xttype.XtPosition):
-        self._push_service.push_message(message.XtMessage(
+        self._push_service.push_trade_message(message.XtMessage(
             type=message.MessageType.STOCK_POSITION,
             timestamp=self._datetime_now(),
             message=model_util.pydantic_model_from_object(
@@ -48,7 +48,7 @@ class TradeCallback(xttrader.XtQuantTraderCallback):
         ))
 
     def on_stock_order(self, order: xttype.XtOrder):
-        self._push_service.push_message(message.XtMessage(
+        self._push_service.push_trade_message(message.XtMessage(
             type=message.MessageType.STOCK_ORDER,
             timestamp=self._datetime_now(),
             message=model_util.pydantic_model_from_object(
@@ -56,7 +56,7 @@ class TradeCallback(xttrader.XtQuantTraderCallback):
         ))
 
     def on_stock_trade(self, trade: xttype.XtTrade):
-        self._push_service.push_message(message.XtMessage(
+        self._push_service.push_trade_message(message.XtMessage(
             type=message.MessageType.STOCK_TRADE,
             timestamp=self._datetime_now(),
             message=model_util.pydantic_model_from_object(
@@ -64,7 +64,7 @@ class TradeCallback(xttrader.XtQuantTraderCallback):
         ))
 
     def on_order_error(self, order_error: xttype.XtOrderError):
-        self._push_service.push_message(message.XtMessage(
+        self._push_service.push_trade_message(message.XtMessage(
             type=message.MessageType.ORDER_ERROR,
             timestamp=self._datetime_now(),
             message=model_util.pydantic_model_from_object(
@@ -72,7 +72,7 @@ class TradeCallback(xttrader.XtQuantTraderCallback):
         ))
 
     def on_cancel_error(self, cancel_error: xttype.XtCancelError):
-        self._push_service.push_message(message.XtMessage(
+        self._push_service.push_trade_message(message.XtMessage(
             type=message.MessageType.CANCEL_ERROR,
             timestamp=self._datetime_now(),
             message=model_util.pydantic_model_from_object(
@@ -80,7 +80,7 @@ class TradeCallback(xttrader.XtQuantTraderCallback):
         ))
 
     def on_order_stock_async_response(self, response: xttype.XtOrderResponse):
-        self._push_service.push_message(message.XtMessage(
+        self._push_service.push_trade_message(message.XtMessage(
             type=message.MessageType.ORDER_STOCK_ASYNC_RESPONSE,
             timestamp=self._datetime_now(),
             message=model_util.pydantic_model_from_object(
@@ -88,7 +88,7 @@ class TradeCallback(xttrader.XtQuantTraderCallback):
         ))
 
     def on_cancel_order_stock_async_response(self, response: xttype.XtCancelOrderResponse):
-        self._push_service.push_message(message.XtMessage(
+        self._push_service.push_trade_message(message.XtMessage(
             type=message.MessageType.CANCEL_ORDER_STOCK_ASYNC_RESPONSE,
             timestamp=self._datetime_now(),
             message=model_util.pydantic_model_from_object(

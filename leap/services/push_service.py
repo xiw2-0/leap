@@ -28,8 +28,8 @@ class PushService(object):
         self._logger.info(
             f"New WebSocket connection added: {websocket.client}. Total connections: {len(self._active_connections)}")
 
-    def push_message(self, xt_message: message.XtMessage):
-        """Push the message to message queue. This is the only one called in the callback thread."""
+    def push_trade_message(self, xt_message: message.XtMessage):
+        """Push the message to message queue. This is the one that will be called in the trader callback thread."""
         self._logger.info(f"Message to be pushed: {xt_message}")
 
         asyncio.run_coroutine_threadsafe(
@@ -37,14 +37,21 @@ class PushService(object):
             self._loop
         )
 
-    def push_quotes(self, datetime: dt.datetime, quotes: dict[str, dict[str, typing.Any]]):
-        """Push quote updates to message queue.
+    def push_quote_updates(self, datetime: dt.datetime, quotes: dict[str, dict[str, typing.Any]]):
+        """Push quote updates to message queue. This is the one that will be called in the quote callback thread.
 
         Args:
             datetime (dt.datetime): The time when the quotes were received.
             quotes (dict[str, dict[str, typing.Any]]): The quotes to be pushed.
         """
-        self._logger.info(f"{len(quotes)} quotes to be pushed. Received at {datetime.isoformat()}")
+        asyncio.run_coroutine_threadsafe(
+            self.push_quote_updates_async(datetime, quotes),
+            self._loop
+        )
+
+    async def push_quote_updates_async(self, datetime: dt.datetime, quotes: dict[str, dict[str, typing.Any]]):
+        self._logger.info(
+            f"{len(quotes)} quotes to be pushed. Received at {datetime.isoformat()}")
 
     async def notify_subscribers(self, xt_message: message.XtMessage):
         # Record stats before notifying subscribers

@@ -67,5 +67,5 @@ class QuoteSubscriber(object):
         Args:
             data: Dictionary containing the quote data from xtdata
         """
-        self._push_service.push_quotes(dt.datetime.now(self._tz), data)
+        self._push_service.push_quote_updates(dt.datetime.now(self._tz), data)
 
