@@ -2,6 +2,7 @@ import asyncio
 import datetime as dt
 import fastapi
 import logging
+import time
 import typing
 
 from leap.models import message, trade
@@ -50,8 +51,10 @@ class PushService(object):
         )
 
     async def push_quote_updates_async(self, datetime: dt.datetime, quotes: dict[str, dict[str, typing.Any]]):
+        now_ms = time.time() * 1000
+        latency = now_ms - quotes[next(iter(quotes))]['time']  # Assuming all quotes have the same timestamp, take the first one
         self._logger.info(
-            f"{len(quotes)} quotes to be pushed. Received at {datetime.isoformat()}")
+            f"{len(quotes)} quotes to be pushed. Received at {datetime.isoformat()}. Latency: {latency:.2f}ms")
 
     async def notify_subscribers(self, xt_message: message.XtMessage):
         # Record stats before notifying subscribers
