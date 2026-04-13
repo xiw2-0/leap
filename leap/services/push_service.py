@@ -38,23 +38,24 @@ class PushService(object):
             self._loop
         )
 
-    def push_quote_updates(self, datetime: dt.datetime, quotes: dict[str, dict[str, typing.Any]]):
+    def push_quote_update(self, datetime: dt.datetime, quote: dict[str, typing.Any]):
         """Push quote updates to message queue. This is the one that will be called in the quote callback thread.
 
         Args:
             datetime (dt.datetime): The time when the quotes were received.
-            quotes (dict[str, dict[str, typing.Any]]): The quotes to be pushed.
+            quote (dict[str, typing.Any]): The quote to be pushed.
         """
         asyncio.run_coroutine_threadsafe(
-            self.push_quote_updates_async(datetime, quotes),
+            self.push_quote_update_async(datetime, quote),
             self._loop
         )
 
-    async def push_quote_updates_async(self, datetime: dt.datetime, quotes: dict[str, dict[str, typing.Any]]):
+    async def push_quote_update_async(self, datetime: dt.datetime, quote: dict[str, typing.Any]):
         now_ms = time.time() * 1000
-        latency = now_ms - quotes[next(iter(quotes))]['time']  # Assuming all quotes have the same timestamp, take the first one
+        # Assuming all quotes have the same timestamp, take the first one
+        latency = now_ms - quote['time']
         self._logger.info(
-            f"{len(quotes)} quotes to be pushed. Received at {datetime.isoformat()}. Latency: {latency:.2f}ms")
+            f"Quote {quote['stock_code']} to be pushed. Received at {datetime.isoformat()}. Latency: {latency:.2f}ms")
 
     async def notify_subscribers(self, xt_message: message.XtMessage):
         # Record stats before notifying subscribers
