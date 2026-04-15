@@ -89,8 +89,9 @@ class QuotePushService(object):
         # Assuming all quotes have the same timestamp, take the first one
         latency = now_ms - quote['time']
         stock_code = quote['stock_code']
-        self._logger.info(
-            f"Quote {stock_code} to be pushed. Received at {datetime.isoformat()}. Latency: {latency:.2f}ms")
+
+        # Record stats before notifying subscribers
+        self._stats_service.record_data_delay([latency])
 
         # Get the subscribers for this specific stock code
         subscribers = self._quote_subscriptions.get(stock_code, [])
@@ -128,7 +129,7 @@ class QuotePushService(object):
             try:
                 await connection.send_text(quote_update)
                 self._logger.info(
-                    f"Quote sent to {connection.client}: {stock_code}")
+                    f"Quote sent to {connection.client}: {stock_code}. Latency: {latency:.2f}ms")
             except Exception as e:
                 self._logger.error(
                     f"Error sending quote to client: {e}. Closing connection. Application state: {connection.application_state}. Client state: {connection.client_state}.")
