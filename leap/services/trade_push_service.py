@@ -43,11 +43,11 @@ class TradePushService(object):
         self._logger.info(f"Trade message to be pushed: {xt_message}")
 
         asyncio.run_coroutine_threadsafe(
-            self.notify_trade_subscribers(xt_message),
+            self.push_trade_message_async(xt_message),
             self._loop
         )
 
-    async def notify_trade_subscribers(self, xt_message: message.XtMessage):
+    async def push_trade_message_async(self, xt_message: message.XtMessage):
         # Record stats before notifying subscribers
         await self._record_stats(xt_message)
 
