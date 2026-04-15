@@ -3,7 +3,7 @@ import typing
 import datetime as dt
 from xtquant import xtdata  # type: ignore
 
-from leap.services.push_service import PushService
+from leap.services import quote_push_service
 from leap.utils import singleton
 
 
@@ -15,7 +15,7 @@ class QuoteSubscriber(object):
     """
 
     def __init__(self) -> None:
-        self._push_service = PushService()
+        self._push_service = quote_push_service.QuotePushService()
         # Dictionary to map stock codes to subscription IDs
         self._subscriptions: dict[str, int] = {}
 
@@ -83,7 +83,9 @@ class QuoteSubscriber(object):
             data: Dictionary containing the quote data from xtdata
         """
         for stock_code, quotes in data.items():
-            self._logger.info(f"Received quote update for {stock_code}")
+            self._logger.info(f"Received quote update for {stock_code}: {quotes}")
             for quote in quotes:
+                # Add stock_code to the quote data since the push service expects it
+                quote['stock_code'] = stock_code
                 self._push_service.push_quote_update(
                     dt.datetime.now(self._tz), quote)
