@@ -83,7 +83,7 @@ class QuoteSubscriber(object):
             data: Dictionary containing the quote data from xtdata
         """
         for stock_code, quotes in data.items():
-            self._logger.info(f"Received quote update for {stock_code}: {quotes}")
+            self._logger.info(f"Received quote update for {stock_code}")
             for quote in quotes:
                 # Add stock_code to the quote data since the push service expects it
                 quote['stock_code'] = stock_code
