@@ -1,9 +1,10 @@
 from leap.models.quote import Tick
+from leap.utils import singleton
 
 import httpx
 import datetime
 
-
+@singleton.singleton
 class TencentQuote(object):
     def __init__(self):
         # Initialize httpx async client with longer keep-alive timeout
