@@ -90,16 +90,28 @@ class SinaQuote(object):
         if len(stock_info) < 2:
             return None
         stock_code = stock_info[0].split("hq_str_")[-1]
+        # Check if stock_code is valid
+        if not stock_code or stock_code.strip() == "":
+            return None
+
         stock_code = self.from_sina_code([stock_code])[0]
 
         stock_data = stock_info[1].strip()[1:-1]  # 去掉两端的引号
         stock_data = stock_data.split(",")
+
+        # Check if we have data before trying to parse it
+        if len(stock_data) <= 1 or (len(stock_data) == 1 and stock_data[0] == ""):
+            return None
 
         if stock_code[-2:] == "HK":
             return self._parse_hk_tick(stock_code, stock_data)
         return self._parse_a_share_tick(stock_code, stock_data)
 
     def _parse_a_share_tick(self, stock_code: str, stock_data: list[str]):
+        # Check if we have enough data for A-share parsing
+        if len(stock_data) < 32:
+            return None
+
         # Parse the time string into a timestamp
         date_part = stock_data[30]  # Date in format YYYY-MM-DD
         time_part = stock_data[31]  # Time in format HH:MM:SS
@@ -161,6 +173,10 @@ class SinaQuote(object):
         return tick
 
     def _parse_hk_tick(self, stock_code: str, stock_data: list[str]):
+        # Check if we have enough data for HK parsing
+        if len(stock_data) < 19:
+            return None
+
         # Parse the time string into a timestamp for HK stocks
         date_part = stock_data[17]  # Date in format YYYY/MM/DD for HK
         time_part = stock_data[18]  # Time in format HH:MM:SS for HK
@@ -204,8 +220,7 @@ if __name__ == "__main__":
     async def main():
         api = SinaQuote()
 
-        stock_codes = ["600519.SH", "002475.SZ",
-                       '159937.SZ', '01810.HK', '000004.SZ']  # 股票代码列表
+        stock_codes = ['600092.SH', '600181.SH', '600003.SH', '600263.SH', '600001.SH', '600253.SH', '600205.SH', '600357.SH', '600065.SH', '600002.SH']  # 股票代码列表
         stock_data = await api.get_tick(stock_codes)
         print(f'Ticks:\n{stock_data}')
 
