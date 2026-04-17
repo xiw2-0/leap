@@ -12,7 +12,7 @@ logger = logging.getLogger(__name__)
 
 
 @router.websocket("/push")
-async def trade_push(websocket: fastapi.WebSocket):
+async def push(websocket: fastapi.WebSocket):
     await websocket.accept()
     logger.info(f"WebSocket connection established with {websocket.client}")
 
