@@ -18,7 +18,7 @@ class QuotePushService(object):
     def __init__(self) -> None:
         # Store quote subscriptions - mapping stock codes to WebSocket connections interested in those stocks
         self._quote_subscriptions: dict[str, list[fastapi.WebSocket]] = {}
-        
+
         # Store the last tick time for each stock code to prevent duplicates
         self._last_tick_times: dict[str, float] = {}
 
@@ -39,11 +39,11 @@ class QuotePushService(object):
                         f"Failed to subscribe to quote for {stock_code}")
                     continue
                 self._quote_subscriptions[stock_code] = []
-                
+
             # Initialize the last tick time for this stock if not present
             if stock_code not in self._last_tick_times:
                 self._last_tick_times[stock_code] = 0.0
-                
+
             if websocket not in self._quote_subscriptions[stock_code]:
                 self._quote_subscriptions[stock_code].append(websocket)
             subscribed_codes.append(stock_code)
@@ -105,7 +105,7 @@ class QuotePushService(object):
         # Check if the new tick time is newer than the last recorded time for this stock
         last_recorded_time = self._last_tick_times.get(stock_code, 0.0)
         current_tick_time = quote['time']
-        
+
         # Only proceed if the current tick is newer than the last recorded one
         if current_tick_time <= last_recorded_time:
             self._logger.debug(
@@ -171,11 +171,17 @@ class QuotePushService(object):
 
         # Update the last tick time for this stock after successfully sending to clients
         self._last_tick_times[stock_code] = current_tick_time
-    
+
     def get_subscribers(self, stock_code: str) -> list[fastapi.WebSocket]:
         """Return the list of WebSocket connections subscribed to the given stock code."""
         return self._quote_subscriptions.get(stock_code, [])
-    
+
     def get_last_tick_time(self, stock_code: str) -> float | None:
         """Return the last recorded tick time for the given stock code, or None if not found."""
         return self._last_tick_times.get(stock_code)
+
+    def get_max_tick_time(self) -> float | None:
+        """Return the maximum tick time across all stocks, or None if no ticks recorded."""
+        if not self._last_tick_times:
+            return None
+        return max(self._last_tick_times.values())

@@ -504,6 +504,233 @@ class TestQuotePushService(unittest.TestCase):
         self.assertEqual(time_2, 1234567895.0)
         self.assertEqual(time_3, 1234567905.0)
 
+    def test_get_max_tick_time_empty_dict_returns_none(self):
+        """Test that get_max_tick_time returns None when no tick times are recorded"""
+        # Act
+        max_tick_time = self.quote_push_service.get_max_tick_time()
+
+        # Assert
+        self.assertIsNone(max_tick_time)
+
+    @patch('leap.services.quote_subscriber.QuoteSubscriber')
+    def test_get_max_tick_time_single_entry(self, mock_quote_subscriber_class: Any):
+        """Test that get_max_tick_time returns the only tick time when only one exists"""
+        # Arrange
+        mock_subscriber_instance = MagicMock()
+        mock_subscriber_instance.subscribe.return_value = True
+        mock_quote_subscriber_class.return_value = mock_subscriber_instance
+
+        # Use public methods to set up the state
+        websocket = MagicMock(spec=fastapi.WebSocket)
+        self.quote_push_service.subscribe_to_quotes(websocket, ['000001.SZ'])
+
+        # Manually update the tick time by pushing a quote
+        datetime_mock = MagicMock()
+        quote_data: dict[str, Any] = {
+            'stock_code': '000001.SZ',
+            'time': 1234567890.0,
+            'lastPrice': 10.5,
+            'open': 10.0,
+            'high': 11.0,
+            'low': 9.5,
+            'lastClose': 10.2,
+            'amount': 100000.0,
+            'volume': 10000,
+            'pvolume': 10000,
+            'stockStatus': 1,
+            'openInt': 0,
+            'lastSettlementPrice': 10.2,
+            'askPrice': [10.6, 10.7],
+            'bidPrice': [10.4, 10.3],
+            'askVol': [100, 200],
+            'bidVol': [150, 250]
+        }
+
+        # Run the async method in an event loop to set the tick time
+        async def run_test():
+            await self.quote_push_service.push_quote_update_async(datetime_mock, quote_data)
+
+        asyncio.run(run_test())
+
+        # Act
+        max_tick_time = self.quote_push_service.get_max_tick_time()
+
+        # Assert
+        self.assertEqual(max_tick_time, 1234567890.0)
+
+    @patch('leap.services.quote_subscriber.QuoteSubscriber')
+    def test_get_max_tick_time_multiple_entries(self, mock_quote_subscriber_class: Any):
+        """Test that get_max_tick_time returns the highest tick time among multiple entries"""
+        # Arrange
+        mock_subscriber_instance = MagicMock()
+        mock_subscriber_instance.subscribe.return_value = True
+        mock_quote_subscriber_class.return_value = mock_subscriber_instance
+
+        # Use public methods to set up the state
+        websocket = MagicMock(spec=fastapi.WebSocket)
+        self.quote_push_service.subscribe_to_quotes(
+            websocket, ['000001.SZ', '600000.SH', '000850.SZ'])
+
+        # Manually update the tick times by pushing quotes
+        datetime_mock = MagicMock()
+
+        quote_data_1: dict[str, Any] = {
+            'stock_code': '000001.SZ',
+            'time': 1234567890.0,  # Lowest time
+            'lastPrice': 10.5,
+            'open': 10.0,
+            'high': 11.0,
+            'low': 9.5,
+            'lastClose': 10.2,
+            'amount': 100000.0,
+            'volume': 10000,
+            'pvolume': 10000,
+            'stockStatus': 1,
+            'openInt': 0,
+            'lastSettlementPrice': 10.2,
+            'askPrice': [10.6, 10.7],
+            'bidPrice': [10.4, 10.3],
+            'askVol': [100, 200],
+            'bidVol': [150, 250]
+        }
+
+        quote_data_2: dict[str, Any] = {
+            'stock_code': '600000.SH',
+            'time': 1234567895.0,  # Middle time
+            'lastPrice': 15.5,
+            'open': 15.0,
+            'high': 16.0,
+            'low': 14.5,
+            'lastClose': 15.2,
+            'amount': 150000.0,
+            'volume': 15000,
+            'pvolume': 15000,
+            'stockStatus': 1,
+            'openInt': 0,
+            'lastSettlementPrice': 15.2,
+            'askPrice': [15.6, 15.7],
+            'bidPrice': [15.4, 15.3],
+            'askVol': [150, 250],
+            'bidVol': [175, 275]
+        }
+
+        quote_data_3: dict[str, Any] = {
+            'stock_code': '000850.SZ',
+            'time': 1234567885.0,  # Lowest time
+            'lastPrice': 20.5,
+            'open': 20.0,
+            'high': 21.0,
+            'low': 19.5,
+            'lastClose': 20.2,
+            'amount': 200000.0,
+            'volume': 20000,
+            'pvolume': 20000,
+            'stockStatus': 1,
+            'openInt': 0,
+            'lastSettlementPrice': 20.2,
+            'askPrice': [20.6, 20.7],
+            'bidPrice': [20.4, 20.3],
+            'askVol': [200, 300],
+            'bidVol': [225, 325]
+        }
+
+        # Process all the quotes
+        async def run_tests():
+            await self.quote_push_service.push_quote_update_async(datetime_mock, quote_data_1)
+            await self.quote_push_service.push_quote_update_async(datetime_mock, quote_data_2)
+            await self.quote_push_service.push_quote_update_async(datetime_mock, quote_data_3)
+
+        asyncio.run(run_tests())
+
+        # Act
+        max_tick_time = self.quote_push_service.get_max_tick_time()
+
+        # Assert - Should return the middle time (1234567895.0) which is the maximum
+        self.assertEqual(max_tick_time, 1234567895.0)
+
+    @patch('leap.services.quote_subscriber.QuoteSubscriber')
+    def test_get_max_tick_time_after_removing_entries(self, mock_quote_subscriber_class: Any):
+        """Test that get_max_tick_time updates correctly after removing entries"""
+        # Arrange
+        mock_subscriber_instance = MagicMock()
+        mock_subscriber_instance.subscribe.return_value = True
+        mock_quote_subscriber_class.return_value = mock_subscriber_instance
+
+        # Use public methods to set up the state
+        websocket = MagicMock(spec=fastapi.WebSocket)
+        self.quote_push_service.subscribe_to_quotes(
+            websocket, ['000001.SZ', '600000.SH'])
+
+        # Manually update the tick times by pushing quotes
+        datetime_mock = MagicMock()
+
+        quote_data_1: dict[str, Any] = {
+            'stock_code': '000001.SZ',
+            'time': 1234567890.0,  # Lower time
+            'lastPrice': 10.5,
+            'open': 10.0,
+            'high': 11.0,
+            'low': 9.5,
+            'lastClose': 10.2,
+            'amount': 100000.0,
+            'volume': 10000,
+            'pvolume': 10000,
+            'stockStatus': 1,
+            'openInt': 0,
+            'lastSettlementPrice': 10.2,
+            'askPrice': [10.6, 10.7],
+            'bidPrice': [10.4, 10.3],
+            'askVol': [100, 200],
+            'bidVol': [150, 250]
+        }
+
+        quote_data_2: dict[str, Any] = {
+            'stock_code': '600000.SH',
+            'time': 1234567895.0,  # Higher time
+            'lastPrice': 15.5,
+            'open': 15.0,
+            'high': 16.0,
+            'low': 14.5,
+            'lastClose': 15.2,
+            'amount': 150000.0,
+            'volume': 15000,
+            'pvolume': 15000,
+            'stockStatus': 1,
+            'openInt': 0,
+            'lastSettlementPrice': 15.2,
+            'askPrice': [15.6, 15.7],
+            'bidPrice': [15.4, 15.3],
+            'askVol': [150, 250],
+            'bidVol': [175, 275]
+        }
+
+        # Process both quotes
+        async def run_tests():
+            await self.quote_push_service.push_quote_update_async(datetime_mock, quote_data_1)
+            await self.quote_push_service.push_quote_update_async(datetime_mock, quote_data_2)
+
+        asyncio.run(run_tests())
+
+        # Verify initial max
+        initial_max = self.quote_push_service.get_max_tick_time()
+        self.assertEqual(initial_max, 1234567895.0)
+
+        # Now unsubscribe from the stock with the higher tick time
+        self.quote_push_service.unsubscribe_from_quotes(
+            websocket, ['600000.SH'])
+
+        # Act - Check max after removal
+        max_after_removal = self.quote_push_service.get_max_tick_time()
+
+        # Assert - Should now return the lower time since the higher one was removed
+        self.assertEqual(max_after_removal, 1234567890.0)
+
+        # Finally, remove the last entry and check
+        self.quote_push_service.unsubscribe_from_quotes(
+            websocket, ['000001.SZ'])
+        max_when_empty = self.quote_push_service.get_max_tick_time()
+        self.assertIsNone(max_when_empty)
+
 
 if __name__ == '__main__':
     unittest.main()
