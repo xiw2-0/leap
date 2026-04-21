@@ -120,13 +120,6 @@ class QuotePushService(object):
         # Record stats before notifying subscribers
         self._stats_service.record_data_delay([latency])
 
-        # Get the subscribers for this specific stock code
-        subscribers = self._quote_subscriptions.get(stock_code, [])
-        if not subscribers:
-            self._logger.info(
-                f"No active WebSocket connections for quote {stock_code}.")
-            return
-
         tick = Tick(
             stock_code=stock_code,
             time=quote['time'],
@@ -146,17 +139,39 @@ class QuotePushService(object):
             ask_vols=quote["askVol"],
             bid_vols=quote["bidVol"],
         )
+        # Update the last tick time for this stock after successfully sending to clients
+        self._last_tick_times[stock_code] = current_tick_time
+
+        # Update the max tick time if the current tick time is greater than the stored max
+        if current_tick_time > self._max_tick_time:
+            self._max_tick_time = current_tick_time
+
+        await self._broadcast_quote_to_subscribers(datetime, tick)
+
+    async def _broadcast_quote_to_subscribers(self, datetime: dt.datetime, tick: Tick) -> None:
+        """Send quote update to all subscribers, handling disconnections gracefully."""
+        # Extract stock code from the tick object
+        stock_code = tick.stock_code
+
+        # Get the subscribers for this specific stock code
+        subscribers = self._quote_subscriptions.get(stock_code, [])
+        if not subscribers:
+            self._logger.info(
+                f"No active WebSocket connections for quote {stock_code}.")
+            return
+
         quote_update = message.XtMessage(
             message=tick,
             timestamp=datetime,
             type=message.MessageType.QUOTE_UPDATE
         ).model_dump_json()
+
         remove_list: list[fastapi.WebSocket] = []
         for connection in subscribers:
             try:
                 await connection.send_text(quote_update)
                 self._logger.info(
-                    f"Quote sent to {connection.client}: {stock_code}. Latency: {latency:.2f}ms")
+                    f"Quote sent to {connection.client}: {stock_code}")
             except Exception as e:
                 self._logger.error(
                     f"Error sending quote to client: {e}. Closing connection. Application state: {connection.application_state}. Client state: {connection.client_state}.")
@@ -170,14 +185,8 @@ class QuotePushService(object):
                     quote_subscriber.QuoteSubscriber().unsubscribe(stock_code)
                     # Remove the tick time entry for this stock as well
                     self._last_tick_times.pop(stock_code, None)
+                    # Note: We don't update _max_tick_time here since we preserve the highest value seen
                     del self._quote_subscriptions[stock_code]
-
-        # Update the last tick time for this stock after successfully sending to clients
-        self._last_tick_times[stock_code] = current_tick_time
-
-        # Update the max tick time if the current tick time is greater than the stored max
-        if current_tick_time > self._max_tick_time:
-            self._max_tick_time = current_tick_time
 
     def get_subscribers(self, stock_code: str) -> list[fastapi.WebSocket]:
         """Return the list of WebSocket connections subscribed to the given stock code."""
