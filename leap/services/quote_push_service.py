@@ -22,6 +22,9 @@ class QuotePushService(object):
         # Store the last tick time for each stock code to prevent duplicates
         self._last_tick_times: dict[str, float] = {}
 
+        # Cache the maximum tick time across all stocks for efficiency, initialized to 0
+        self._max_tick_time: float = 0.0
+
         self._logger = logging.getLogger(__name__)
         self._stats_service = stats_service.StatsService()
 
@@ -172,6 +175,10 @@ class QuotePushService(object):
         # Update the last tick time for this stock after successfully sending to clients
         self._last_tick_times[stock_code] = current_tick_time
 
+        # Update the max tick time if the current tick time is greater than the stored max
+        if current_tick_time > self._max_tick_time:
+            self._max_tick_time = current_tick_time
+
     def get_subscribers(self, stock_code: str) -> list[fastapi.WebSocket]:
         """Return the list of WebSocket connections subscribed to the given stock code."""
         return self._quote_subscriptions.get(stock_code, [])
@@ -180,8 +187,6 @@ class QuotePushService(object):
         """Return the last recorded tick time for the given stock code, or None if not found."""
         return self._last_tick_times.get(stock_code)
 
-    def get_max_tick_time(self) -> float | None:
-        """Return the maximum tick time across all stocks, or None if no ticks recorded."""
-        if not self._last_tick_times:
-            return None
-        return max(self._last_tick_times.values())
+    def get_max_tick_time(self) -> float:
+        """Return the maximum tick time across all stocks."""
+        return self._max_tick_time

@@ -504,17 +504,17 @@ class TestQuotePushService(unittest.TestCase):
         self.assertEqual(time_2, 1234567895.0)
         self.assertEqual(time_3, 1234567905.0)
 
-    def test_get_max_tick_time_empty_dict_returns_none(self):
-        """Test that get_max_tick_time returns None when no tick times are recorded"""
+    def test_get_max_tick_time_empty_dict_returns_zero(self):
+        """Test that get_max_tick_time returns 0.0 when no tick times are recorded"""
         # Act
         max_tick_time = self.quote_push_service.get_max_tick_time()
 
         # Assert
-        self.assertIsNone(max_tick_time)
+        self.assertEqual(max_tick_time, 0.0)
 
     @patch('leap.services.quote_subscriber.QuoteSubscriber')
     def test_get_max_tick_time_single_entry(self, mock_quote_subscriber_class: Any):
-        """Test that get_max_tick_time returns the only tick time when only one exists"""
+        """Test that get_max_tick_time returns the correct tick time when only one exists"""
         # Arrange
         mock_subscriber_instance = MagicMock()
         mock_subscriber_instance.subscribe.return_value = True
@@ -616,7 +616,7 @@ class TestQuotePushService(unittest.TestCase):
 
         quote_data_3: dict[str, Any] = {
             'stock_code': '000850.SZ',
-            'time': 1234567885.0,  # Lowest time
+            'time': 1234567900.0,  # Highest time
             'lastPrice': 20.5,
             'open': 20.0,
             'high': 21.0,
@@ -645,12 +645,12 @@ class TestQuotePushService(unittest.TestCase):
         # Act
         max_tick_time = self.quote_push_service.get_max_tick_time()
 
-        # Assert - Should return the middle time (1234567895.0) which is the maximum
-        self.assertEqual(max_tick_time, 1234567895.0)
+        # Assert - Should return the highest time (1234567900.0) which is the maximum
+        self.assertEqual(max_tick_time, 1234567900.0)
 
     @patch('leap.services.quote_subscriber.QuoteSubscriber')
     def test_get_max_tick_time_after_removing_entries(self, mock_quote_subscriber_class: Any):
-        """Test that get_max_tick_time updates correctly after removing entries"""
+        """Test that get_max_tick_time retains the highest value after removing entries"""
         # Arrange
         mock_subscriber_instance = MagicMock()
         mock_subscriber_instance.subscribe.return_value = True
@@ -719,17 +719,19 @@ class TestQuotePushService(unittest.TestCase):
         self.quote_push_service.unsubscribe_from_quotes(
             websocket, ['600000.SH'])
 
-        # Act - Check max after removal
+        # Act - Check max after removal (should still be the highest ever seen)
         max_after_removal = self.quote_push_service.get_max_tick_time()
 
-        # Assert - Should now return the lower time since the higher one was removed
-        self.assertEqual(max_after_removal, 1234567890.0)
+        # Assert - Should still return the highest value ever seen (1234567895.0)
+        # even though that stock was removed
+        self.assertEqual(max_after_removal, 1234567895.0)
 
-        # Finally, remove the last entry and check
+        # Unsubscribe remaining stock and verify max is still preserved
         self.quote_push_service.unsubscribe_from_quotes(
             websocket, ['000001.SZ'])
         max_when_empty = self.quote_push_service.get_max_tick_time()
-        self.assertIsNone(max_when_empty)
+        # Still preserves the max value ever seen
+        self.assertEqual(max_when_empty, 1234567895.0)
 
 
 if __name__ == '__main__':
