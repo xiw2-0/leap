@@ -100,17 +100,8 @@ class QuotePushService(object):
         )
 
     async def push_quote_update_from_primary(self, datetime: dt.datetime, quote: dict[str, typing.Any]):
-        now_ms = time.time() * 1000
-        # Assuming all quotes have the same timestamp, take the first one
-        latency = now_ms - quote['time']
-        # Record stats before notifying subscribers
-        self._stats_service.record_data_delay([latency])
-
-        stock_code = quote['stock_code']
-        current_tick_time = quote['time']
-
         tick = Tick(
-            stock_code=stock_code,
+            stock_code=quote['stock_code'],
             time=quote['time'],
             last_price=quote['lastPrice'],
             open=quote['open'],
@@ -130,8 +121,8 @@ class QuotePushService(object):
         )
 
         # Update the max tick time if the current tick time is greater than the stored max
-        if current_tick_time > self._max_tick_time:
-            self._max_tick_time = current_tick_time
+        if tick.time > self._max_tick_time:
+            self._max_tick_time = tick.time
 
         await self._broadcast_quote_to_subscribers(datetime, tick)
 
@@ -151,6 +142,11 @@ class QuotePushService(object):
                 f"Current: {current_tick_time}, Last: {last_recorded_time}"
             )
             return
+
+        now_ms = time.time() * 1000
+        latency = now_ms - tick.time
+        # Record stats before notifying subscribers
+        self._stats_service.record_data_delay([latency])
 
         # Update the last tick time for this stock after successfully sending to clients
         self._last_tick_times[stock_code] = current_tick_time
