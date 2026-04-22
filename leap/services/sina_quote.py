@@ -66,6 +66,8 @@ class SinaQuote(object):
         Returns:
             List of stock tick data
         """
+        if not securities:
+            return []
         # 构造请求 URL
         sina_codes = self.to_sina_code(securities)
         request_url = self.base_url + ",".join(sina_codes)

@@ -65,6 +65,8 @@ class TencentQuote(object):
         Returns:
             List of stock tick data
         """
+        if not securities:
+            return []
         # 构造请求 URL
         stock_codes = self.to_tencent_code(securities)
         request_url = self.base_url + ",".join(stock_codes)
