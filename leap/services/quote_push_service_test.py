@@ -86,7 +86,7 @@ class TestQuotePushService(unittest.TestCase):
 
         # Run the async method in an event loop to set the tick time
         async def run_test():
-            await self.quote_push_service.push_quote_update_async(datetime_mock, quote_data)
+            await self.quote_push_service.push_quote_update_from_primary(datetime_mock, quote_data)
 
         asyncio.run(run_test())
 
@@ -225,7 +225,7 @@ class TestQuotePushService(unittest.TestCase):
 
         # Run the async method in an event loop
         async def run_test():
-            await self.quote_push_service.push_quote_update_async(datetime_mock, quote_data)
+            await self.quote_push_service.push_quote_update_from_primary(datetime_mock, quote_data)
 
         asyncio.run(run_test())
 
@@ -293,13 +293,13 @@ class TestQuotePushService(unittest.TestCase):
 
         # Run the async method in an event loop to set the initial time
         async def run_first_test():
-            await self.quote_push_service.push_quote_update_async(datetime_mock, newer_quote_data)
+            await self.quote_push_service.push_quote_update_from_primary(datetime_mock, newer_quote_data)
 
         asyncio.run(run_first_test())
 
         # Now run the test with the older time
         async def run_test():
-            await self.quote_push_service.push_quote_update_async(datetime_mock, quote_data)
+            await self.quote_push_service.push_quote_update_from_primary(datetime_mock, quote_data)
 
         asyncio.run(run_test())
 
@@ -347,13 +347,13 @@ class TestQuotePushService(unittest.TestCase):
 
         # First, set the tick time by processing the same tick
         async def run_first_test():
-            await self.quote_push_service.push_quote_update_async(datetime_mock, quote_data)
+            await self.quote_push_service.push_quote_update_from_primary(datetime_mock, quote_data)
 
         asyncio.run(run_first_test())
 
         # Now try to send the same tick again
         async def run_test():
-            await self.quote_push_service.push_quote_update_async(datetime_mock, quote_data)
+            await self.quote_push_service.push_quote_update_from_primary(datetime_mock, quote_data)
 
         asyncio.run(run_test())
 
@@ -461,9 +461,9 @@ class TestQuotePushService(unittest.TestCase):
 
         # Process the initial ticks
         async def run_tests():
-            await self.quote_push_service.push_quote_update_async(datetime_mock, quote_data_1)
-            await self.quote_push_service.push_quote_update_async(datetime_mock, quote_data_2)
-            await self.quote_push_service.push_quote_update_async(datetime_mock, quote_data_3)
+            await self.quote_push_service.push_quote_update_from_primary(datetime_mock, quote_data_1)
+            await self.quote_push_service.push_quote_update_from_primary(datetime_mock, quote_data_2)
+            await self.quote_push_service.push_quote_update_from_primary(datetime_mock, quote_data_3)
 
         asyncio.run(run_tests())
 
@@ -483,10 +483,10 @@ class TestQuotePushService(unittest.TestCase):
         quote_data_3_updated['time'] = 1234567905.0
 
         async def run_update_tests():
-            await self.quote_push_service.push_quote_update_async(datetime_mock, quote_data_1_updated)
+            await self.quote_push_service.push_quote_update_from_primary(datetime_mock, quote_data_1_updated)
             # Should not update
-            await self.quote_push_service.push_quote_update_async(datetime_mock, quote_data_2_older)
-            await self.quote_push_service.push_quote_update_async(datetime_mock, quote_data_3_updated)
+            await self.quote_push_service.push_quote_update_from_primary(datetime_mock, quote_data_2_older)
+            await self.quote_push_service.push_quote_update_from_primary(datetime_mock, quote_data_3_updated)
 
         asyncio.run(run_update_tests())
 
@@ -548,7 +548,7 @@ class TestQuotePushService(unittest.TestCase):
 
         # Run the async method in an event loop to set the tick time
         async def run_test():
-            await self.quote_push_service.push_quote_update_async(datetime_mock, quote_data)
+            await self.quote_push_service.push_quote_update_from_primary(datetime_mock, quote_data)
 
         asyncio.run(run_test())
 
@@ -636,9 +636,9 @@ class TestQuotePushService(unittest.TestCase):
 
         # Process all the quotes
         async def run_tests():
-            await self.quote_push_service.push_quote_update_async(datetime_mock, quote_data_1)
-            await self.quote_push_service.push_quote_update_async(datetime_mock, quote_data_2)
-            await self.quote_push_service.push_quote_update_async(datetime_mock, quote_data_3)
+            await self.quote_push_service.push_quote_update_from_primary(datetime_mock, quote_data_1)
+            await self.quote_push_service.push_quote_update_from_primary(datetime_mock, quote_data_2)
+            await self.quote_push_service.push_quote_update_from_primary(datetime_mock, quote_data_3)
 
         asyncio.run(run_tests())
 
@@ -706,8 +706,8 @@ class TestQuotePushService(unittest.TestCase):
 
         # Process both quotes
         async def run_tests():
-            await self.quote_push_service.push_quote_update_async(datetime_mock, quote_data_1)
-            await self.quote_push_service.push_quote_update_async(datetime_mock, quote_data_2)
+            await self.quote_push_service.push_quote_update_from_primary(datetime_mock, quote_data_1)
+            await self.quote_push_service.push_quote_update_from_primary(datetime_mock, quote_data_2)
 
         asyncio.run(run_tests())
 

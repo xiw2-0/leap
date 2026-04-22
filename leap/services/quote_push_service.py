@@ -95,30 +95,19 @@ class QuotePushService(object):
             quote (dict[str, typing.Any]): The quote to be pushed.
         """
         asyncio.run_coroutine_threadsafe(
-            self.push_quote_update_async(datetime, quote),
+            self.push_quote_update_from_primary(datetime, quote),
             self._loop
         )
 
-    async def push_quote_update_async(self, datetime: dt.datetime, quote: dict[str, typing.Any]):
+    async def push_quote_update_from_primary(self, datetime: dt.datetime, quote: dict[str, typing.Any]):
         now_ms = time.time() * 1000
         # Assuming all quotes have the same timestamp, take the first one
         latency = now_ms - quote['time']
-        stock_code = quote['stock_code']
-
-        # Check if the new tick time is newer than the last recorded time for this stock
-        last_recorded_time = self._last_tick_times.get(stock_code, 0.0)
-        current_tick_time = quote['time']
-
-        # Only proceed if the current tick is newer than the last recorded one
-        if current_tick_time <= last_recorded_time:
-            self._logger.debug(
-                f"Ignoring older or duplicate tick for {stock_code}. "
-                f"Current: {current_tick_time}, Last: {last_recorded_time}"
-            )
-            return
-
         # Record stats before notifying subscribers
         self._stats_service.record_data_delay([latency])
+
+        stock_code = quote['stock_code']
+        current_tick_time = quote['time']
 
         tick = Tick(
             stock_code=stock_code,
@@ -139,8 +128,6 @@ class QuotePushService(object):
             ask_vols=quote["askVol"],
             bid_vols=quote["bidVol"],
         )
-        # Update the last tick time for this stock after successfully sending to clients
-        self._last_tick_times[stock_code] = current_tick_time
 
         # Update the max tick time if the current tick time is greater than the stored max
         if current_tick_time > self._max_tick_time:
@@ -152,6 +139,21 @@ class QuotePushService(object):
         """Send quote update to all subscribers, handling disconnections gracefully."""
         # Extract stock code from the tick object
         stock_code = tick.stock_code
+
+        # Check if the new tick time is newer than the last recorded time for this stock
+        last_recorded_time = self._last_tick_times.get(stock_code, 0.0)
+        current_tick_time = tick.time
+
+        # Only proceed if the current tick is newer than the last recorded one
+        if current_tick_time <= last_recorded_time:
+            self._logger.debug(
+                f"Ignoring older or duplicate tick for {stock_code}. "
+                f"Current: {current_tick_time}, Last: {last_recorded_time}"
+            )
+            return
+
+        # Update the last tick time for this stock after successfully sending to clients
+        self._last_tick_times[stock_code] = current_tick_time
 
         # Get the subscribers for this specific stock code
         subscribers = self._quote_subscriptions.get(stock_code, [])
