@@ -126,6 +126,9 @@ class QuotePushService(object):
 
         await self._broadcast_quote_to_subscribers(datetime, tick)
 
+    async def push_quote_update_from_backup(self, datetime: dt.datetime, tick: Tick):
+        await self._broadcast_quote_to_subscribers(datetime, tick)
+
     async def _broadcast_quote_to_subscribers(self, datetime: dt.datetime, tick: Tick) -> None:
         """Send quote update to all subscribers, handling disconnections gracefully."""
         # Extract stock code from the tick object
