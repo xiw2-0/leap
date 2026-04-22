@@ -733,6 +733,71 @@ class TestQuotePushService(unittest.TestCase):
         # Still preserves the max value ever seen
         self.assertEqual(max_when_empty, 1234567895.0)
 
+    def test_get_subscribed_stocks_empty_when_no_subscriptions(self):
+        """Test that get_subscribed_stocks returns an empty list when no stocks are subscribed"""
+        # Act
+        subscribed_stocks = self.quote_push_service.get_subscribed_stocks()
+
+        # Assert
+        self.assertEqual(subscribed_stocks, [])
+
+    @patch('leap.services.quote_subscriber.QuoteSubscriber')
+    def test_get_subscribed_stocks_returns_correct_list(self, mock_quote_subscriber_class: Any):
+        """Test that get_subscribed_stocks returns the correct list of subscribed stocks"""
+        # Arrange
+        mock_subscriber_instance = MagicMock()
+        mock_subscriber_instance.subscribe.return_value = True
+        mock_quote_subscriber_class.return_value = mock_subscriber_instance
+
+        # Use public methods to subscribe to multiple stocks
+        websocket = MagicMock(spec=fastapi.WebSocket)
+        stock_codes = ['000001.SZ', '600000.SH', '000850.SZ']
+        self.quote_push_service.subscribe_to_quotes(websocket, stock_codes)
+
+        # Act
+        subscribed_stocks = self.quote_push_service.get_subscribed_stocks()
+
+        # Assert
+        self.assertEqual(len(subscribed_stocks), 3)
+        for stock_code in stock_codes:
+            self.assertIn(stock_code, subscribed_stocks)
+
+        # Verify that it contains exactly the stocks we subscribed to
+        self.assertEqual(set(subscribed_stocks), set(stock_codes))
+
+    @patch('leap.services.quote_subscriber.QuoteSubscriber')
+    def test_get_subscribed_stocks_updates_after_unsubscribe(self, mock_quote_subscriber_class: Any):
+        """Test that get_subscribed_stocks reflects changes after unsubscribing"""
+        # Arrange
+        mock_subscriber_instance = MagicMock()
+        mock_subscriber_instance.subscribe.return_value = True
+        mock_quote_subscriber_class.return_value = mock_subscriber_instance
+
+        # Subscribe to multiple stocks
+        websocket = MagicMock(spec=fastapi.WebSocket)
+        stock_codes = ['000001.SZ', '600000.SH', '000850.SZ']
+        self.quote_push_service.subscribe_to_quotes(websocket, stock_codes)
+
+        # Verify initial state
+        initial_subscribed = self.quote_push_service.get_subscribed_stocks()
+        self.assertEqual(set(initial_subscribed), set(stock_codes))
+
+        # Act - unsubscribe from one stock
+        self.quote_push_service.unsubscribe_from_quotes(
+            websocket, ['600000.SH'])
+
+        # Assert - verify the list is updated after unsubscribe
+        updated_subscribed = self.quote_push_service.get_subscribed_stocks()
+        expected_stocks = ['000001.SZ', '000850.SZ']
+        self.assertEqual(set(updated_subscribed), set(expected_stocks))
+
+        # Act - unsubscribe from all remaining stocks
+        self.quote_push_service.unsubscribe_from_quotes(websocket, [])
+
+        # Assert - verify empty list after unsubscribing from all
+        final_subscribed = self.quote_push_service.get_subscribed_stocks()
+        self.assertEqual(final_subscribed, [])
+
 
 if __name__ == '__main__':
     unittest.main()

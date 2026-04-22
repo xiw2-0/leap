@@ -194,6 +194,10 @@ class QuotePushService(object):
         """Return the list of WebSocket connections subscribed to the given stock code."""
         return self._quote_subscriptions.get(stock_code, [])
 
+    def get_subscribed_stocks(self) -> list[str]:
+        """Return the list of stock codes that have active subscriptions."""
+        return list(self._quote_subscriptions.keys())
+
     def get_last_tick_time(self, stock_code: str) -> float | None:
         """Return the last recorded tick time for the given stock code, or None if not found."""
         return self._last_tick_times.get(stock_code)
