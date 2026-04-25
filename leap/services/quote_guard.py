@@ -120,20 +120,18 @@ class QuoteGuard:
         if current_time_ms <= max_tick_time + threshold_ms:
             return
 
-        self._logger.warning(
-            f"Quote data is stale. Max tick time: {max_tick_time}, "
-            f"Current time: {current_time_ms}, Threshold: {threshold_ms}ms"
-        )
-        
-        # Record the quote guard activation
-        self._stats_service.record_quote_guard_time()
-
         # Get all subscribed stocks from the push service
         subscribed_stocks = self._quote_push_service.get_subscribed_stocks()
 
         if not subscribed_stocks:
-            self._logger.info("No subscribed stocks to check.")
             return
+
+        self._logger.warning(
+            f"Quote data is stale. Max tick time: {max_tick_time}, "
+            f"Current time: {current_time_ms}, Threshold: {threshold_ms}ms"
+        )
+        # Record the quote guard activation
+        self._stats_service.record_quote_guard_time()
 
         # Get fresh quotes from Tencent
         try:
