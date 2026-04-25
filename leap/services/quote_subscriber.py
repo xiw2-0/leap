@@ -1,21 +1,18 @@
+from xtquant import xtdata  # type: ignore
+from leap.services.quote_push_service import QuotePushService
+
 import logging
 import typing
 import datetime as dt
-from xtquant import xtdata  # type: ignore
 
-from leap.services import quote_push_service
-from leap.utils import singleton
-
-
-@singleton.singleton
 class QuoteSubscriber(object):
     """
     Service to handle subscribing and unsubscribing to individual stock quotes from xtdata
     and forwarding them to the push service for WebSocket distribution.
     """
 
-    def __init__(self) -> None:
-        self._push_service = quote_push_service.QuotePushService()
+    def __init__(self, push_service: QuotePushService) -> None:
+        self._push_service = push_service
         # Dictionary to map stock codes to subscription IDs
         self._subscriptions: dict[str, int] = {}
 

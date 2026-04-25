@@ -8,11 +8,13 @@ import fastapi
 
 from leap.models import message
 from leap.models.quote import Tick
-from leap.services import stats_service, quote_subscriber
-from leap.utils import singleton
+from leap.services import stats_service
+
+if typing.TYPE_CHECKING:
+    # import for type hinting only to avoid circular import issues
+    from leap.services import quote_subscriber
 
 
-@singleton.singleton
 class QuotePushService(object):
 
     def __init__(self) -> None:
@@ -28,8 +30,9 @@ class QuotePushService(object):
         self._logger = logging.getLogger(__name__)
         self._stats_service = stats_service.StatsService()
 
-    def init(self, loop: asyncio.AbstractEventLoop) -> None:
+    def init(self, loop: asyncio.AbstractEventLoop, quote_subscriber: 'quote_subscriber.QuoteSubscriber') -> None:
         self._loop = loop
+        self._quote_subscriber = quote_subscriber
         self._logger.info("Event loop set for QuotePushService")
 
     def subscribe_to_quotes(self, websocket: fastapi.WebSocket, stock_codes: list[str]) -> list[str]:
@@ -37,7 +40,7 @@ class QuotePushService(object):
         subscribed_codes: list[str] = []
         for stock_code in stock_codes:
             if stock_code not in self._quote_subscriptions:
-                if not quote_subscriber.QuoteSubscriber().subscribe(stock_code):
+                if not self._quote_subscriber.subscribe(stock_code):
                     self._logger.error(
                         f"Failed to subscribe to quote for {stock_code}")
                     continue
@@ -67,7 +70,7 @@ class QuotePushService(object):
                     self._quote_subscriptions[stock_code].remove(websocket)
                     # Clean up empty lists and corresponding tick time entries
                     if not self._quote_subscriptions[stock_code]:
-                        quote_subscriber.QuoteSubscriber().unsubscribe(stock_code)
+                        self._quote_subscriber.unsubscribe(stock_code)
                         # Remove the tick time entry for this stock as well
                         self._last_tick_times.pop(stock_code, None)
                         del self._quote_subscriptions[stock_code]
@@ -80,7 +83,7 @@ class QuotePushService(object):
                     self._quote_subscriptions[stock_code].remove(websocket)
                     # Clean up empty lists and corresponding tick time entries
                     if not self._quote_subscriptions[stock_code]:
-                        quote_subscriber.QuoteSubscriber().unsubscribe(stock_code)
+                        self._quote_subscriber.unsubscribe(stock_code)
                         # Remove the tick time entry for this stock as well
                         self._last_tick_times.pop(stock_code, None)
                         del self._quote_subscriptions[stock_code]
@@ -183,7 +186,7 @@ class QuotePushService(object):
                 self._quote_subscriptions[stock_code].remove(conn)
                 # Clean up empty lists and corresponding tick time entries
                 if not self._quote_subscriptions[stock_code]:
-                    quote_subscriber.QuoteSubscriber().unsubscribe(stock_code)
+                    self._quote_subscriber.unsubscribe(stock_code)
                     # Remove the tick time entry for this stock as well
                     self._last_tick_times.pop(stock_code, None)
                     # Note: We don't update _max_tick_time here since we preserve the highest value seen

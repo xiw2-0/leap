@@ -3,33 +3,28 @@ from typing import Any
 
 import asyncio
 import unittest
-import sys
 import fastapi
 
 
 class TestQuotePushService(unittest.TestCase):
     def setUp(self):
-        # Clear the module from cache to get a fresh singleton instance
-        if 'leap.services.quote_push_service' in sys.modules:
-            del sys.modules['leap.services.quote_push_service']
-
-        # Re-import to get fresh class with fresh singleton state
         from leap.services.quote_push_service import QuotePushService
+        from leap.services.quote_subscriber import QuoteSubscriber
+
+        # Create a mock subscriber instance to pass to the service
+        self.mock_subscriber_instance = MagicMock(spec=QuoteSubscriber)
+
+        # Create a fresh instance of the service
         self.quote_push_service = QuotePushService()
 
         # Mock the event loop
         self.loop_mock = MagicMock()
-        self.quote_push_service.init(self.loop_mock)
+        self.quote_push_service.init(
+            self.loop_mock, self.mock_subscriber_instance)
 
-    @patch('leap.services.quote_subscriber.QuoteSubscriber')
-    def test_subscribe_to_quotes_initializes_last_tick_time(self, mock_quote_subscriber_class: Any):
+    def test_subscribe_to_quotes_initializes_last_tick_time(self):
         """Test that subscribing to quotes initializes last tick time for new stocks"""
         # Arrange
-        mock_subscriber_instance = MagicMock()
-        # Simulate successful subscription
-        mock_subscriber_instance.subscribe.return_value = True
-        mock_quote_subscriber_class.return_value = mock_subscriber_instance
-
         websocket = MagicMock(spec=fastapi.WebSocket)
         stock_codes = ["000001.SZ"]
 
@@ -46,15 +41,9 @@ class TestQuotePushService(unittest.TestCase):
         self.assertIsNotNone(last_tick_time)
         self.assertEqual(last_tick_time, 0.0)
 
-    @patch('leap.services.quote_subscriber.QuoteSubscriber')
-    def test_duplicate_subscription_does_not_reset_last_tick_time(self, mock_quote_subscriber_class: Any):
+    def test_duplicate_subscription_does_not_reset_last_tick_time(self):
         """Test that resubscribing to a stock doesn't reset the last tick time"""
         # Arrange
-        mock_subscriber_instance = MagicMock()
-        # Simulate successful subscription
-        mock_subscriber_instance.subscribe.return_value = True
-        mock_quote_subscriber_class.return_value = mock_subscriber_instance
-
         websocket = MagicMock(spec=fastapi.WebSocket)
         stock_codes = ["000001.SZ"]
 
@@ -105,15 +94,9 @@ class TestQuotePushService(unittest.TestCase):
             "000001.SZ")
         self.assertEqual(last_tick_time, 1234567890.0)
 
-    @patch('leap.services.quote_subscriber.QuoteSubscriber')
-    def test_unsubscribe_removes_tick_time_entry(self, mock_quote_subscriber_class: Any):
+    def test_unsubscribe_removes_tick_time_entry(self):
         """Test that unsubscribing removes the tick time entry when no more connections"""
         # Arrange
-        mock_subscriber_instance = MagicMock()
-        # Simulate successful subscription
-        mock_subscriber_instance.subscribe.return_value = True
-        mock_quote_subscriber_class.return_value = mock_subscriber_instance
-
         websocket = MagicMock(spec=fastapi.WebSocket)
         stock_code = "000001.SZ"
 
@@ -139,15 +122,9 @@ class TestQuotePushService(unittest.TestCase):
         self.assertEqual(len(subscribers_after), 0)
         self.assertIsNone(last_tick_time_after)
 
-    @patch('leap.services.quote_subscriber.QuoteSubscriber')
-    def test_unsubscribe_all_removes_tick_time_entries(self, mock_quote_subscriber_class: Any):
+    def test_unsubscribe_all_removes_tick_time_entries(self):
         """Test that unsubscribing from all stocks removes all tick time entries"""
         # Arrange
-        mock_subscriber_instance = MagicMock()
-        # Simulate successful subscription
-        mock_subscriber_instance.subscribe.return_value = True
-        mock_quote_subscriber_class.return_value = mock_subscriber_instance
-
         websocket = MagicMock(spec=fastapi.WebSocket)
         stock_code_1 = "000001.SZ"
         stock_code_2 = "600000.SH"
@@ -190,14 +167,9 @@ class TestQuotePushService(unittest.TestCase):
         self.assertIsNone(time_2_after)
 
     @patch('leap.services.stats_service.StatsService')
-    @patch('leap.services.quote_subscriber.QuoteSubscriber')
-    def test_push_quote_update_with_newer_time(self, mock_quote_subscriber_class: Any, mock_stats_service: Any):
+    def test_push_quote_update_with_newer_time(self, mock_stats_service: Any):
         """Test that push_quote_update_async sends tick when newer than last recorded time"""
         # Arrange
-        mock_subscriber_instance = MagicMock()
-        mock_subscriber_instance.subscribe.return_value = True
-        mock_quote_subscriber_class.return_value = mock_subscriber_instance
-
         datetime_mock = MagicMock()
         quote_data: dict[str, Any] = {
             'stock_code': '000001.SZ',
@@ -237,14 +209,9 @@ class TestQuotePushService(unittest.TestCase):
         self.assertEqual(updated_time, 1234567895.0)
 
     @patch('leap.services.stats_service.StatsService')
-    @patch('leap.services.quote_subscriber.QuoteSubscriber')
-    def test_push_quote_update_with_older_time(self, mock_quote_subscriber_class: Any, mock_stats_service: Any):
+    def test_push_quote_update_with_older_time(self, mock_stats_service: Any):
         """Test that push_quote_update_async does not send tick when older than last recorded time"""
         # Arrange
-        mock_subscriber_instance = MagicMock()
-        mock_subscriber_instance.subscribe.return_value = True
-        mock_quote_subscriber_class.return_value = mock_subscriber_instance
-
         datetime_mock = MagicMock()
         quote_data: dict[str, Any] = {
             'stock_code': '000001.SZ',
@@ -312,14 +279,9 @@ class TestQuotePushService(unittest.TestCase):
         self.assertEqual(unchanged_time, 1234567895.0)
 
     @patch('leap.services.stats_service.StatsService')
-    @patch('leap.services.quote_subscriber.QuoteSubscriber')
-    def test_push_quote_update_with_same_time(self, mock_quote_subscriber_class: Any, mock_stats_service: Any):
+    def test_push_quote_update_with_same_time(self, mock_stats_service: Any):
         """Test that push_quote_update_async does not send tick when same as last recorded time"""
         # Arrange
-        mock_subscriber_instance = MagicMock()
-        mock_subscriber_instance.subscribe.return_value = True
-        mock_quote_subscriber_class.return_value = mock_subscriber_instance
-
         datetime_mock = MagicMock()
         quote_data: dict[str, Any] = {
             'stock_code': '000001.SZ',
@@ -365,15 +327,9 @@ class TestQuotePushService(unittest.TestCase):
             '000001.SZ')
         self.assertEqual(unchanged_time, 1234567895.0)
 
-    @patch('leap.services.quote_subscriber.QuoteSubscriber')
-    def test_concurrent_access_to_tick_times(self, mock_quote_subscriber_class: Any):
+    def test_concurrent_access_to_tick_times(self):
         """Test that the tick time tracking works correctly with concurrent access"""
         # Arrange
-        mock_subscriber_instance = MagicMock()
-        # Simulate successful subscription
-        mock_subscriber_instance.subscribe.return_value = True
-        mock_quote_subscriber_class.return_value = mock_subscriber_instance
-
         # This test simulates potential race conditions in async environments
         # Though Python's GIL helps with atomic dict operations, we still want to test the logic
 
@@ -398,7 +354,6 @@ class TestQuotePushService(unittest.TestCase):
         # Simulate receiving ticks for different stocks
         datetime_mock = MagicMock()
 
-        # Simulate receiving ticks for different stocks
         quote_data_1: dict[str, Any] = {
             'stock_code': '000001.SZ',
             'time': 1234567890.0,
@@ -512,14 +467,8 @@ class TestQuotePushService(unittest.TestCase):
         # Assert
         self.assertEqual(max_tick_time, 0.0)
 
-    @patch('leap.services.quote_subscriber.QuoteSubscriber')
-    def test_get_max_tick_time_single_entry(self, mock_quote_subscriber_class: Any):
+    def test_get_max_tick_time_single_entry(self):
         """Test that get_max_tick_time returns the correct tick time when only one exists"""
-        # Arrange
-        mock_subscriber_instance = MagicMock()
-        mock_subscriber_instance.subscribe.return_value = True
-        mock_quote_subscriber_class.return_value = mock_subscriber_instance
-
         # Use public methods to set up the state
         websocket = MagicMock(spec=fastapi.WebSocket)
         self.quote_push_service.subscribe_to_quotes(websocket, ['000001.SZ'])
@@ -558,14 +507,8 @@ class TestQuotePushService(unittest.TestCase):
         # Assert
         self.assertEqual(max_tick_time, 1234567890.0)
 
-    @patch('leap.services.quote_subscriber.QuoteSubscriber')
-    def test_get_max_tick_time_multiple_entries(self, mock_quote_subscriber_class: Any):
+    def test_get_max_tick_time_multiple_entries(self):
         """Test that get_max_tick_time returns the highest tick time among multiple entries"""
-        # Arrange
-        mock_subscriber_instance = MagicMock()
-        mock_subscriber_instance.subscribe.return_value = True
-        mock_quote_subscriber_class.return_value = mock_subscriber_instance
-
         # Use public methods to set up the state
         websocket = MagicMock(spec=fastapi.WebSocket)
         self.quote_push_service.subscribe_to_quotes(
@@ -648,14 +591,8 @@ class TestQuotePushService(unittest.TestCase):
         # Assert - Should return the highest time (1234567900.0) which is the maximum
         self.assertEqual(max_tick_time, 1234567900.0)
 
-    @patch('leap.services.quote_subscriber.QuoteSubscriber')
-    def test_get_max_tick_time_after_removing_entries(self, mock_quote_subscriber_class: Any):
+    def test_get_max_tick_time_after_removing_entries(self):
         """Test that get_max_tick_time retains the highest value after removing entries"""
-        # Arrange
-        mock_subscriber_instance = MagicMock()
-        mock_subscriber_instance.subscribe.return_value = True
-        mock_quote_subscriber_class.return_value = mock_subscriber_instance
-
         # Use public methods to set up the state
         websocket = MagicMock(spec=fastapi.WebSocket)
         self.quote_push_service.subscribe_to_quotes(
@@ -741,14 +678,8 @@ class TestQuotePushService(unittest.TestCase):
         # Assert
         self.assertEqual(subscribed_stocks, [])
 
-    @patch('leap.services.quote_subscriber.QuoteSubscriber')
-    def test_get_subscribed_stocks_returns_correct_list(self, mock_quote_subscriber_class: Any):
+    def test_get_subscribed_stocks_returns_correct_list(self):
         """Test that get_subscribed_stocks returns the correct list of subscribed stocks"""
-        # Arrange
-        mock_subscriber_instance = MagicMock()
-        mock_subscriber_instance.subscribe.return_value = True
-        mock_quote_subscriber_class.return_value = mock_subscriber_instance
-
         # Use public methods to subscribe to multiple stocks
         websocket = MagicMock(spec=fastapi.WebSocket)
         stock_codes = ['000001.SZ', '600000.SH', '000850.SZ']
@@ -765,14 +696,8 @@ class TestQuotePushService(unittest.TestCase):
         # Verify that it contains exactly the stocks we subscribed to
         self.assertEqual(set(subscribed_stocks), set(stock_codes))
 
-    @patch('leap.services.quote_subscriber.QuoteSubscriber')
-    def test_get_subscribed_stocks_updates_after_unsubscribe(self, mock_quote_subscriber_class: Any):
+    def test_get_subscribed_stocks_updates_after_unsubscribe(self):
         """Test that get_subscribed_stocks reflects changes after unsubscribing"""
-        # Arrange
-        mock_subscriber_instance = MagicMock()
-        mock_subscriber_instance.subscribe.return_value = True
-        mock_quote_subscriber_class.return_value = mock_subscriber_instance
-
         # Subscribe to multiple stocks
         websocket = MagicMock(spec=fastapi.WebSocket)
         stock_codes = ['000001.SZ', '600000.SH', '000850.SZ']

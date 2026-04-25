@@ -6,7 +6,7 @@ from contextlib import asynccontextmanager
 from leap.config import settings
 from leap.middlewares import stats_middleware
 from leap.routes import asset, push, trade, quote, stats, docs
-from leap.services import trade_push_service, quote_push_service
+from leap.services import trade_push_service, quote_push_service, quote_subscriber
 from leap.utils.logging_config import setup_logging
 
 
@@ -18,9 +18,13 @@ async def lifespan(app: fastapi.FastAPI):
     logger.info("Starting Leap application...")
 
     trade_push_service.TradePushService().init(asyncio.get_event_loop())
-    quote_push_service.QuotePushService().init(asyncio.get_event_loop())
+    quote_push_svc = quote_push_service.QuotePushService()
+    quote_push_svc.init(asyncio.get_event_loop(),
+                        quote_subscriber.QuoteSubscriber(quote_push_svc))
 
-    yield
+    yield {
+        'quote_push_service': quote_push_svc,
+    }
 
     # Clean up
     logger.info("Shutting down Leap application...")

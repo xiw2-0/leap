@@ -17,7 +17,8 @@ async def push(websocket: fastapi.WebSocket):
     logger.info(f"WebSocket connection established with {websocket.client}")
 
     trade_push_svc = trade_push_service.TradePushService()  # singleton
-    quote_push_svc = quote_push_service.QuotePushService()  # singleton
+    # Get the quote push service from app state
+    quote_push_svc: quote_push_service.QuotePushService = websocket.state.quote_push_service
 
     try:
         while True:
@@ -70,7 +71,8 @@ async def push(websocket: fastapi.WebSocket):
                         f"Client {websocket.client} unsubscribed from {topic}.")
                 if topic == "quote" or topic == "all":
                     # Unsubscribe from the specific topic with stock codes
-                    quote_push_svc.unsubscribe_from_quotes(websocket, stock_codes)
+                    quote_push_svc.unsubscribe_from_quotes(
+                        websocket, stock_codes)
                     logger.info(
                         f"Client {websocket.client} unsubscribed from {topic} with stock_codes {stock_codes}")
             else:
