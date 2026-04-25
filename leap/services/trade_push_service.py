@@ -5,18 +5,16 @@ import fastapi
 
 from leap.models import message, trade
 from leap.services import stats_service
-from leap.utils import singleton
 
 
-@singleton.singleton
 class TradePushService(object):
 
-    def __init__(self) -> None:
+    def __init__(self, stats_service: stats_service.StatsService) -> None:
         # Store trade subscriptions - WebSocket connections interested in trade updates
         self._trade_subscriptions: list[fastapi.WebSocket] = []
 
         self._logger = logging.getLogger(__name__)
-        self._stats_service = stats_service.StatsService()
+        self._stats_service = stats_service
 
     def init(self, loop: asyncio.AbstractEventLoop) -> None:
         self._loop = loop

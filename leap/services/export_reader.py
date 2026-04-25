@@ -3,7 +3,7 @@ import typing
 
 from leap.config import settings
 from leap.models import trade
-from leap.utils import singleton, model_util
+from leap.utils import model_util
 from xtquant import xtconstant  # type: ignore
 
 # Define column name mappings
@@ -40,7 +40,6 @@ _IPO_SUBSCRIPTION_RESULT_MAPPING = {
 }
 
 
-@singleton.singleton
 class ExportReader(object):
     """The reader for exported data from XT Mini-QMT."""
 

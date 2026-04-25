@@ -7,27 +7,28 @@ import typing
 from leap.config import settings
 from leap.models import asset, trade
 from leap.services import trade_callback
-from leap.utils import singleton, model_util
+from leap.utils import model_util
 
 from xtquant import xttrader, xttype  # type: ignore
 
 
-@singleton.singleton
 class XtBroker(object):
     def __init__(self) -> None:
         qmt_data_path = settings.QMT_DATA_PATH
         self._xt_trader = self._setup_xt_trader(path=qmt_data_path)
 
-        trade_cb = trade_callback.TradeCallback()
+        self._lock = threading.Lock()
+
+    def init(self, trade_cb: trade_callback.TradeCallback) -> None:
         self._xt_trader.register_callback(  # type: ignore
             callback=trade_cb)
 
         self._xt_account = self._setup_xt_account(
             settings.QMT_ACCOUNT, settings.QMT_ACCOUNT_TYPE, self._xt_trader)
+
         sub = self._xt_trader.subscribe(self._xt_account)  # type: ignore
         assert sub == 0, f'Subscribe to account {self._xt_account} failed'
 
-        self._lock = threading.Lock()
 
     def _setup_xt_trader(self, path: str) -> xttrader.XtQuantTrader:
         """Sets up XtQuantTrader and returns it."""

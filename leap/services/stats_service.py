@@ -1,7 +1,6 @@
 import collections
 import time
 
-from leap.utils import singleton
 from xtquant import xtconstant  # type: ignore
 
 
@@ -42,7 +41,6 @@ def calculate_percentiles(values: list[float]) -> dict[str, float]:
     }
 
 
-@singleton.singleton
 class StatsService(object):
     def __init__(self) -> None:
         self._api_stats: dict[str, list[float]] = collections.defaultdict(list)

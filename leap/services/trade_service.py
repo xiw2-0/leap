@@ -8,11 +8,11 @@ logger = logging.getLogger(__name__)
 
 
 class TradeService(object):
-    def __init__(self) -> None:
-        self._broker = broker.XtBroker()
-        self._export_reader = export_reader.ExportReader()
+    def __init__(self, broker: broker.XtBroker, export_reader: export_reader.ExportReader, stats_service: stats_service.StatsService) -> None:
+        self._broker = broker
+        self._export_reader = export_reader
 
-        self._stats_service = stats_service.StatsService()
+        self._stats_service = stats_service
 
     def submit_stock_order_async(self, order_request: trade.OrderStockRequest) -> int:
         logger.info(

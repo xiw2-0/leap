@@ -1,4 +1,5 @@
-from unittest.mock import AsyncMock, MagicMock, patch
+from leap.services import stats_service
+from unittest.mock import AsyncMock, MagicMock
 from typing import Any
 
 import asyncio
@@ -13,9 +14,10 @@ class TestQuotePushService(unittest.TestCase):
 
         # Create a mock subscriber instance to pass to the service
         self.mock_subscriber_instance = MagicMock(spec=QuoteSubscriber)
+        self.stats_service_mock = MagicMock(spec=stats_service.StatsService)
 
         # Create a fresh instance of the service
-        self.quote_push_service = QuotePushService()
+        self.quote_push_service = QuotePushService(self.stats_service_mock)
 
         # Mock the event loop
         self.loop_mock = MagicMock()
@@ -166,8 +168,7 @@ class TestQuotePushService(unittest.TestCase):
         self.assertIsNone(time_1_after)
         self.assertIsNone(time_2_after)
 
-    @patch('leap.services.stats_service.StatsService')
-    def test_push_quote_update_with_newer_time(self, mock_stats_service: Any):
+    def test_push_quote_update_with_newer_time(self):
         """Test that push_quote_update_async sends tick when newer than last recorded time"""
         # Arrange
         datetime_mock = MagicMock()
@@ -208,8 +209,7 @@ class TestQuotePushService(unittest.TestCase):
         updated_time = self.quote_push_service.get_last_tick_time('000001.SZ')
         self.assertEqual(updated_time, 1234567895.0)
 
-    @patch('leap.services.stats_service.StatsService')
-    def test_push_quote_update_with_older_time(self, mock_stats_service: Any):
+    def test_push_quote_update_with_older_time(self):
         """Test that push_quote_update_async does not send tick when older than last recorded time"""
         # Arrange
         datetime_mock = MagicMock()
@@ -278,8 +278,7 @@ class TestQuotePushService(unittest.TestCase):
             '000001.SZ')
         self.assertEqual(unchanged_time, 1234567895.0)
 
-    @patch('leap.services.stats_service.StatsService')
-    def test_push_quote_update_with_same_time(self, mock_stats_service: Any):
+    def test_push_quote_update_with_same_time(self):
         """Test that push_quote_update_async does not send tick when same as last recorded time"""
         # Arrange
         datetime_mock = MagicMock()

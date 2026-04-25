@@ -17,7 +17,7 @@ if typing.TYPE_CHECKING:
 
 class QuotePushService(object):
 
-    def __init__(self) -> None:
+    def __init__(self, stats_service: stats_service.StatsService) -> None:
         # Store quote subscriptions - mapping stock codes to WebSocket connections interested in those stocks
         self._quote_subscriptions: dict[str, list[fastapi.WebSocket]] = {}
 
@@ -28,7 +28,7 @@ class QuotePushService(object):
         self._max_tick_time: float = 0.0
 
         self._logger = logging.getLogger(__name__)
-        self._stats_service = stats_service.StatsService()
+        self._stats_service = stats_service
 
     def init(self, loop: asyncio.AbstractEventLoop, quote_subscriber: 'quote_subscriber.QuoteSubscriber') -> None:
         self._loop = loop

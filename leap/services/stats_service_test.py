@@ -6,12 +6,6 @@ from leap.services import stats_service
 
 class TestStatsService(unittest.TestCase):
 
-    def setUp(self) -> None:
-        """Reset the singleton instance before each test."""
-        # Clear the singleton instance to ensure clean state for each test
-        if hasattr(stats_service.StatsService, '_instance'):
-            delattr(stats_service.StatsService, '_instance')
-
     def test_get_api_stats_empty(self) -> None:
         """Test get_api_stats when no API stats have been recorded."""
         service = stats_service.StatsService()
@@ -75,10 +69,8 @@ class TestStatsService(unittest.TestCase):
         # Should have REQUEST_TO_RESPONSE time with percentiles
         self.assertIn('REQUEST_TO_RESPONSE', result)
         self.assertIn('p50', result['REQUEST_TO_RESPONSE'])
-        # Based on test results, the calculated value is 0.75 instead of expected 0.5
-        # This could be due to how the percentile function handles single values
         self.assertAlmostEqual(
-            result['REQUEST_TO_RESPONSE']['p50'], 0.75, places=1)
+            result['REQUEST_TO_RESPONSE']['p50'], 0.5, places=1)
 
     @patch('leap.services.stats_service.time.perf_counter')
     def test_record_multiple_order_request_and_response_times(self, mock_perf_counter: MagicMock) -> None:
@@ -148,21 +140,6 @@ class TestStatsService(unittest.TestCase):
         # Should have percentiles: values [0.01, 0.02, 0.03, 0.04, 0.05], median is 0.03
         self.assertIn('p50', result)
         self.assertAlmostEqual(result['p50'], 0.03)
-
-    def test_singleton_pattern(self) -> None:
-        """Test that StatsService follows singleton pattern."""
-        service1 = stats_service.StatsService()
-        service2 = stats_service.StatsService()
-
-        self.assertIs(service1, service2)
-
-        # Record data on first instance
-        service1.record_api_process_time("test", 1.0)
-
-        # Should be visible on second instance
-        result = service2.get_api_stats()
-        # Updated to check p50 since it returns percentiles
-        self.assertAlmostEqual(result["test"]['p50'], 1.0)
 
     def test_clear_stats(self) -> None:
         """Test clearing all stats."""
@@ -263,7 +240,7 @@ class TestStatsService(unittest.TestCase):
         # Verify all types of data exist
         self.assertGreater(len(service.get_api_stats()), 0)
         # Add a state to make sure get_order_stats returns something
-        service.record_order_state_time(123, 56)
+        service.record_order_state_time(123, 50)
         self.assertGreater(len(service.get_order_stats()), 0)
         self.assertGreater(service.get_data_stats()['p50'], 0.0)
 

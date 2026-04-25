@@ -9,8 +9,8 @@ from xtquant import xttype, xttrader  # type: ignore
 class TradeCallback(xttrader.XtQuantTraderCallback):
     """XT Trader callback implementation. It receives trading events from XT Trader and pushes them to the push service."""
 
-    def __init__(self) -> None:
-        self._push_service = trade_push_service.TradePushService()
+    def __init__(self, push_service: trade_push_service.TradePushService) -> None:
+        self._push_service = push_service
 
 
         self._tz = dt.timezone(dt.timedelta(hours=8))

@@ -21,6 +21,7 @@ class DataSource(str, Enum):
 
 @router.get("/tick", summary="Get realtime tick quote from selected data source")
 async def get_realtime_quote(
+    request: fastapi.Request,
     stocks: list[str] = fastapi.Query(...),
     source: DataSource = fastapi.Query(
         DataSource.XT, description="Data source for quotes: xt, sina, or tencent")
@@ -50,10 +51,10 @@ async def get_realtime_quote(
             ) for stock, tick in tick_dict.items()
         ]
     elif source == DataSource.SINA:
-        sina_service = sina_quote.SinaQuote()
+        sina_service: sina_quote.SinaQuote = request.state.sina_quote
         ticks = await sina_service.get_tick(stocks)
     elif source == DataSource.TENCENT:
-        tencent_service = tencent_quote.TencentQuote()
+        tencent_service: tencent_quote.TencentQuote = request.state.tencent_quote
         ticks = await tencent_service.get_tick(stocks)
     else:
         # This should never happen due to enum validation
@@ -66,6 +67,7 @@ async def get_realtime_quote(
         localtime.tm_min * 60 + localtime.tm_sec
     if TRADING_SESSIONS_SEC[0] <= localtime_sec <= TRADING_SESSIONS_SEC[1] or TRADING_SESSIONS_SEC[2] <= localtime_sec <= TRADING_SESSIONS_SEC[3]:
         now_ms = time.time() * 1000
-        stats_service.StatsService().record_data_delay(
+        stats_svc: stats_service.StatsService = request.state.stats_service
+        stats_svc.record_data_delay(
             [now_ms - tick.time for tick in ticks])
     return ticks

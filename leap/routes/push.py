@@ -16,8 +16,8 @@ async def push(websocket: fastapi.WebSocket):
     await websocket.accept()
     logger.info(f"WebSocket connection established with {websocket.client}")
 
-    trade_push_svc = trade_push_service.TradePushService()  # singleton
-    # Get the quote push service from app state
+    # Get the push services from app state
+    trade_push_svc: trade_push_service.TradePushService = websocket.state.trade_push_service
     quote_push_svc: quote_push_service.QuotePushService = websocket.state.quote_push_service
 
     try:

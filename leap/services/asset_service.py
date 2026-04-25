@@ -9,8 +9,8 @@ logger = logging.getLogger(__name__)
 
 class AssetService(object):
 
-    def __init__(self) -> None:
-        self._broker = broker.XtBroker()
+    def __init__(self, broker: broker.XtBroker) -> None:
+        self._broker = broker
 
     def get_account_asset(self) -> asset.XtAsset:
         logger.info("Querying account asset")
