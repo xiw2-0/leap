@@ -7,7 +7,7 @@ from contextlib import asynccontextmanager
 from leap.config import settings
 from leap.middlewares import stats_middleware
 from leap.routes import asset, push, trade, quote, stats, docs
-from leap.services import trade_push_service, quote_push_service, quote_subscriber, asset_service, sina_quote, tencent_quote, stats_service, trade_service, broker, export_reader, trade_callback
+from leap.services import trade_push_service, quote_push_service, quote_subscriber, asset_service, sina_quote, tencent_quote, stats_service, trade_service, broker, export_reader, trade_callback, quote_guard, trading_calendar
 from leap.utils.logging_config import setup_logging
 
 
@@ -38,6 +38,15 @@ async def lifespan(app: fastapi.FastAPI) -> typing.AsyncGenerator[dict[str, typi
     quote_sub = quote_subscriber.QuoteSubscriber(quote_push_svc)
     quote_push_svc.init(asyncio.get_event_loop(), quote_sub)
 
+    quote_guard_svc = quote_guard.QuoteGuard(
+        work_sleep=settings.QUOTE_GUARD_WORK_SLEEP,
+        latency_threshold=settings.QUOTE_GUARD_LATENCY_THRESHOLD,
+        quote_push_service=quote_push_svc,
+        tencent_quote=tencent_quote_svc,
+        trading_calendar=trading_calendar.TradingCalendar()
+    )
+    quote_guard_task = asyncio.create_task(quote_guard_svc.run())
+
     yield {
         'asset_service': asset_svc,
         'sina_quote': sina_quote_svc,
@@ -49,6 +58,7 @@ async def lifespan(app: fastapi.FastAPI) -> typing.AsyncGenerator[dict[str, typi
     }
 
     # Clean up
+    quote_guard_task.cancel()
     logger.info("Shutting down Leap application...")
 
 app = fastapi.FastAPI(
