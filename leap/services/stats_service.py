@@ -1,5 +1,6 @@
 import collections
 import time
+from datetime import datetime
 
 from xtquant import xtconstant  # type: ignore
 
@@ -68,6 +69,7 @@ class StatsService(object):
         }
 
         self._data_stats: list[float] = []  # Fixed: was incorrectly set to {}
+        self._quote_guard_minute_counts: dict[str, int] = {}
 
     def clear_stats(self) -> None:
         """Clear all stored statistics data."""
@@ -75,6 +77,7 @@ class StatsService(object):
         self._order_stats.clear()
         self._request_id_to_request_time.clear()
         self._data_stats.clear()
+        self._quote_guard_minute_counts.clear()
 
     def clear_api_stats(self) -> None:
         """Clear only API statistics data."""
@@ -88,6 +91,10 @@ class StatsService(object):
     def clear_data_stats(self) -> None:
         """Clear only data statistics data."""
         self._data_stats.clear()
+
+    def clear_quote_guard_stats(self) -> None:
+        """Clear only quote guard statistics data."""
+        self._quote_guard_minute_counts.clear()
 
     def get_api_stats(self) -> dict[str, dict[str, float]]:
         return {key: calculate_percentiles(value) for key, value in self._api_stats.items()}
@@ -112,6 +119,22 @@ class StatsService(object):
 
     def get_data_stats(self) -> dict[str, float]:
         return calculate_percentiles(self._data_stats)
+
+    def get_quote_guard_stats(self) -> dict[str, int | list[tuple[str, int]]]:
+        """
+        Return quote guard statistics including total count and top 3 minutes with their counts.
+        Returns: {"total": count, "top_3_minutes": [(minute_str, count), ...]}
+        """
+        total = sum(self._quote_guard_minute_counts.values())
+
+        # Sort the minute counts in descending order and take the top 3
+        sorted_minutes = sorted(
+            self._quote_guard_minute_counts.items(), key=lambda x: x[1], reverse=True)[:3]
+
+        return {
+            "total": total,
+            "top_3_minutes": sorted_minutes
+        }
 
     def record_api_process_time(self, api_name: str, process_time: float) -> None:
         self._api_stats[api_name].append(process_time)
@@ -139,3 +162,9 @@ class StatsService(object):
 
     def record_data_delay(self, delays: list[float]) -> None:
         self._data_stats.extend(delays)
+
+    def record_quote_guard_time(self) -> None:
+        """Record the current minute in HH:MM format and increment its count in the dictionary."""
+        current_minute = datetime.now().strftime("%H:%M")
+        self._quote_guard_minute_counts[current_minute] = self._quote_guard_minute_counts.get(
+            current_minute, 0) + 1

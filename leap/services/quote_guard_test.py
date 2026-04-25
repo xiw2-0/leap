@@ -1,4 +1,5 @@
 from leap.services.quote_guard import QuoteGuard
+from leap.services.stats_service import StatsService
 from unittest.mock import AsyncMock, MagicMock
 
 import datetime
@@ -11,13 +12,15 @@ class TestQuoteGuard(unittest.TestCase):
         self.mock_trading_calendar = MagicMock()
         self.mock_tencent_quote = MagicMock()
         self.mock_quote_push_service = MagicMock()
+        self.stats_service = StatsService()  # Add the stats service
 
         self.quote_guard = QuoteGuard(
             work_sleep=1.0,
             latency_threshold=2.0,
             tencent_quote=self.mock_tencent_quote,
             quote_push_service=self.mock_quote_push_service,
-            trading_calendar=self.mock_trading_calendar
+            trading_calendar=self.mock_trading_calendar,
+            stats_service=self.stats_service  # Pass the stats service
         )
 
     def test_is_guard_time_morning_session(self):
@@ -106,6 +109,11 @@ class TestQuoteGuard(unittest.TestCase):
         self.assertEqual(
             self.mock_quote_push_service.push_quote_update_from_backup.call_count, 2)
 
+        # Verify that quote guard stats were recorded
+        final_stats = self.stats_service.get_quote_guard_stats()
+        final_total = final_stats["total"]
+        self.assertEqual(final_total, 1)
+
     async def test_guard_method_fresh_data_no_backup(self):
         """Test that guard does not fetch backup data when primary data is fresh"""
         # Arrange
@@ -119,12 +127,21 @@ class TestQuoteGuard(unittest.TestCase):
         self.mock_quote_push_service.get_subscribed_stocks.return_value = [
             "000001.SZ"]
 
+        # Get initial stats
+        initial_stats = self.stats_service.get_quote_guard_stats()
+        initial_total = initial_stats["total"]
+
         # Act
         await self.quote_guard.guard()
 
         # Assert
         # Verify that backup quotes were NOT fetched
         self.mock_tencent_quote.get_tick.assert_not_called()
+
+        # Verify that quote guard stats were not recorded since guard wasn't activated
+        final_stats = self.stats_service.get_quote_guard_stats()
+        final_total = final_stats["total"]
+        self.assertEqual(final_total, initial_total)
 
     async def test_guard_method_empty_subscriptions(self):
         """Test that guard handles case with no subscribed stocks"""
@@ -138,6 +155,11 @@ class TestQuoteGuard(unittest.TestCase):
         # Assert
         # Verify that backup quotes were NOT fetched because there are no subscriptions
         self.mock_tencent_quote.get_tick.assert_not_called()
+
+        # Verify that quote guard stats were recorded (guard was activated but no stocks to update)
+        final_stats = self.stats_service.get_quote_guard_stats()
+        final_total = final_stats["total"]
+        self.assertEqual(final_total, 1)
 
 
 if __name__ == '__main__':

@@ -119,6 +119,173 @@ class TestStatsService(unittest.TestCase):
         self.assertAlmostEqual(
             result['REQUEST_TO_RESPONSE']['max'], 2.0, places=1)
 
+    def test_get_quote_guard_stats_empty(self) -> None:
+        """Test get_quote_guard_stats when no quote guard times have been recorded."""
+        service = stats_service.StatsService()
+        result = service.get_quote_guard_stats()
+
+        # Should return total 0 and empty list for top 3 minutes
+        self.assertEqual(result["total"], 0)
+        # Adding type assertion for type checker
+        top_3_minutes = result["top_3_minutes"]
+        assert isinstance(top_3_minutes, list)
+        self.assertEqual(len(top_3_minutes), 0)
+
+    @patch('leap.services.stats_service.datetime')
+    def test_record_and_get_quote_guard_stats_single_minute(self, mock_datetime: MagicMock) -> None:
+        """Test recording and retrieving quote guard times for a single minute."""
+        service = stats_service.StatsService()
+
+        # Mock datetime.now() to return a fixed time
+        mock_datetime.now.return_value.strftime.return_value = "10:30"
+
+        # Record a quote guard time
+        service.record_quote_guard_time()
+
+        # Get quote guard stats
+        result = service.get_quote_guard_stats()
+
+        # Should have total 1 and one entry in top 3 minutes
+        self.assertEqual(result["total"], 1)
+        # Adding type assertion for type checker
+        top_3_minutes = result["top_3_minutes"]
+        assert isinstance(top_3_minutes, list)
+        self.assertEqual(len(top_3_minutes), 1)
+        self.assertEqual(top_3_minutes[0][0], "10:30")  # The minute string
+        self.assertEqual(top_3_minutes[0][1], 1)        # The count
+
+    @patch('leap.services.stats_service.datetime')
+    def test_record_and_get_quote_guard_stats_multiple_minutes(self, mock_datetime: MagicMock) -> None:
+        """Test recording and retrieving quote guard times for multiple minutes."""
+        service = stats_service.StatsService()
+
+        # Mock datetime.now() to return different fixed times
+        # We'll record times for three different minutes with different counts
+        times = ["10:30", "11:45", "10:30", "12:15", "11:45", "10:30"]
+
+        # Create a mock for now() that will return a mock object with strftime
+        # Each call to now().strftime("%H:%M") will return the next time in sequence
+        strftime_mock = MagicMock()
+        strftime_mock.strftime.side_effect = times
+        mock_datetime.now.return_value = strftime_mock
+
+        # Record quote guard times:
+        # "10:30" appears 3 times
+        # "11:45" appears 2 times
+        # "12:15" appears 1 time
+        service.record_quote_guard_time()  # 10:30
+        service.record_quote_guard_time()  # 11:45
+        service.record_quote_guard_time()  # 10:30
+        service.record_quote_guard_time()  # 12:15
+        service.record_quote_guard_time()  # 11:45
+        service.record_quote_guard_time()  # 10:30
+
+        # Get quote guard stats
+        result = service.get_quote_guard_stats()
+
+        # Total should be 6
+        self.assertEqual(result["total"], 6)
+
+        # Top 3 minutes should be ordered by count (descending)
+        # Adding type assertion for type checker
+        top_3_minutes = result["top_3_minutes"]
+        assert isinstance(top_3_minutes, list)
+        # Should have 3 entries since we have 3 distinct minutes
+        self.assertEqual(len(top_3_minutes), 3)
+
+        # The minute "10:30" should have the highest count (3)
+        self.assertEqual(top_3_minutes[0][0], "10:30")
+        self.assertEqual(top_3_minutes[0][1], 3)
+
+        # The minute "11:45" should have count (2)
+        self.assertEqual(top_3_minutes[1][0], "11:45")
+        self.assertEqual(top_3_minutes[1][1], 2)
+
+        # The minute "12:15" should have count (1)
+        self.assertEqual(top_3_minutes[2][0], "12:15")
+        self.assertEqual(top_3_minutes[2][1], 1)
+
+    @patch('leap.services.stats_service.datetime')
+    def test_record_and_get_quote_guard_stats_top_3_limit(self, mock_datetime: MagicMock) -> None:
+        """Test that get_quote_guard_stats only returns top 3 minutes even if more exist."""
+        service = stats_service.StatsService()
+
+        # Simulate having multiple calls with controlled time values
+        # We'll control the time format calls by providing a sequence
+        time_calls = [
+            # First set of different minutes
+            "09:00", "09:01", "09:02", "09:03", "09:04", "09:05",
+            # Second set to increase counts
+            "09:00", "09:01", "09:02",
+            "09:00", "09:01",                                       # Third set
+            "09:00"                                                 # Final increment to 09:00
+        ]
+
+        # Create a mock for now() that will return a mock object with strftime
+        # Each call to now().strftime("%H:%M") will return the next time in sequence
+        strftime_mock = MagicMock()
+        strftime_mock.strftime.side_effect = time_calls
+        mock_datetime.now.return_value = strftime_mock
+
+        # Record all the quote guard times according to our time sequence
+        for _ in range(len(time_calls)):
+            service.record_quote_guard_time()
+
+        # Get quote guard stats
+        result = service.get_quote_guard_stats()
+
+        # Total should equal the length of our time_calls array
+        self.assertEqual(result["total"], len(time_calls))  # Should be 13
+
+        # Adding type assertion for type checker
+        top_3_minutes = result["top_3_minutes"]
+        assert isinstance(top_3_minutes, list)
+        # Should only return top 3 minutes even though we have 6 distinct minutes
+        self.assertEqual(len(top_3_minutes), 3)
+
+        # Check the counts for each minute:
+        # "09:00" appears 4 times (at indices 0, 6, 9, 12)
+        # "09:01" appears 3 times (at indices 1, 7, 10)
+        # "09:02" appears 2 times (at indices 2, 8)
+        # "09:03", "09:04", "09:05" appear 1 time each
+
+        # Create a dictionary for easier lookup
+        minute_counts = {minute: count for minute, count in top_3_minutes}
+
+        # The top 3 should be 09:00 (4), 09:01 (3), and 09:02 (2)
+        self.assertEqual(minute_counts["09:00"], 4)
+        self.assertEqual(minute_counts["09:01"], 3)
+        self.assertEqual(minute_counts["09:02"], 2)
+
+    def test_clear_quote_guard_stats(self) -> None:
+        """Test clearing only quote guard stats."""
+        service = stats_service.StatsService()
+
+        # Record some quote guard times
+        with patch('leap.services.stats_service.datetime') as mock_datetime:
+            mock_datetime.now.return_value.strftime.return_value = "10:30"
+            service.record_quote_guard_time()
+            service.record_quote_guard_time()
+
+        # Verify quote guard stats exist
+        result_before = service.get_quote_guard_stats()
+        self.assertEqual(result_before["total"], 2)
+        # Adding type assertion for type checker
+        top_3_minutes_before = result_before["top_3_minutes"]
+        assert isinstance(top_3_minutes_before, list)
+        self.assertEqual(len(top_3_minutes_before), 1)
+
+        # Clear only quote guard stats
+        service.clear_quote_guard_stats()
+
+        # Verify only quote guard stats are cleared
+        result_after = service.get_quote_guard_stats()
+        self.assertEqual(result_after["total"], 0)
+        # Adding type assertion for type checker
+        top_3_minutes_after = result_after["top_3_minutes"]
+        assert isinstance(top_3_minutes_after, list)
+        self.assertEqual(len(top_3_minutes_after), 0)
+
     def test_get_data_stats_empty(self) -> None:
         """Test get_data_stats when no data delays have been recorded."""
         service = stats_service.StatsService()
@@ -141,6 +308,26 @@ class TestStatsService(unittest.TestCase):
         self.assertIn('p50', result)
         self.assertAlmostEqual(result['p50'], 0.03)
 
+    def test_clear_stats_includes_quote_guard_stats(self) -> None:
+        """Test that clearing all stats also clears quote guard stats."""
+        service = stats_service.StatsService()
+
+        # Record some quote guard times
+        with patch('leap.services.stats_service.datetime') as mock_datetime:
+            mock_datetime.now.return_value.strftime.return_value = "10:30"
+            service.record_quote_guard_time()
+
+        # Verify quote guard stats exist
+        result_before = service.get_quote_guard_stats()
+        self.assertEqual(result_before["total"], 1)
+
+        # Clear all stats
+        service.clear_stats()
+
+        # Verify quote guard stats are also cleared
+        result_after = service.get_quote_guard_stats()
+        self.assertEqual(result_after["total"], 0)
+
     def test_clear_stats(self) -> None:
         """Test clearing all stats."""
         service = stats_service.StatsService()
@@ -149,6 +336,11 @@ class TestStatsService(unittest.TestCase):
         service.record_api_process_time("GET /test", 0.1)
         service.record_order_request_time(None, 123)
         service.record_data_delay([0.01, 0.02])
+
+        # Record quote guard data
+        with patch('leap.services.stats_service.datetime') as mock_datetime:
+            mock_datetime.now.return_value.strftime.return_value = "10:30"
+            service.record_quote_guard_time()
 
         # Verify data exists
         api_stats = service.get_api_stats()
@@ -165,6 +357,33 @@ class TestStatsService(unittest.TestCase):
         self.assertEqual(len(service.get_api_stats()), 0)
         self.assertEqual(len(service.get_order_stats()), 0)
         self.assertEqual(service.get_data_stats(), {})
+        self.assertEqual(service.get_quote_guard_stats()["total"], 0)
+
+    def test_clear_api_stats_does_not_affect_quote_guard_stats(self) -> None:
+        """Test that clearing API stats does not affect quote guard stats."""
+        service = stats_service.StatsService()
+
+        # Record both API and quote guard stats
+        with patch('leap.services.stats_service.datetime') as mock_datetime:
+            mock_datetime.now.return_value.strftime.return_value = "10:30"
+            service.record_quote_guard_time()
+
+        service.record_api_process_time("GET /test", 0.1)
+
+        # Verify both exist
+        quote_result_before = service.get_quote_guard_stats()
+        api_result_before = service.get_api_stats()
+        self.assertEqual(quote_result_before["total"], 1)
+        self.assertIn("GET /test", api_result_before)
+
+        # Clear only API stats
+        service.clear_api_stats()
+
+        # Verify quote guard stats still exist but API stats are cleared
+        quote_result_after = service.get_quote_guard_stats()
+        api_result_after = service.get_api_stats()
+        self.assertEqual(quote_result_after["total"], 1)
+        self.assertEqual(api_result_after, {})
 
     def test_clear_api_stats(self) -> None:
         """Test clearing only API stats."""
@@ -179,11 +398,17 @@ class TestStatsService(unittest.TestCase):
         service.record_order_response_time(456, 789)
         service.record_data_delay([0.01, 0.02])
 
+        # Record quote guard data
+        with patch('leap.services.stats_service.datetime') as mock_datetime:
+            mock_datetime.now.return_value.strftime.return_value = "10:30"
+            service.record_quote_guard_time()
+
         # Verify all types of data exist
         self.assertGreater(len(service.get_api_stats()), 0)
         # Should have REQUEST_TO_RESPONSE stat
         self.assertGreater(len(service.get_order_stats()), 0)
         self.assertGreater(service.get_data_stats()['p50'], 0.0)
+        self.assertEqual(service.get_quote_guard_stats()["total"], 1)
 
         # Clear only API stats
         service.clear_api_stats()
@@ -194,6 +419,34 @@ class TestStatsService(unittest.TestCase):
                            0)  # Order stats still there
         # Data stats still there
         self.assertGreater(service.get_data_stats()['p50'], 0.0)
+        # Quote guard stats still there
+        self.assertEqual(service.get_quote_guard_stats()["total"], 1)
+
+    def test_clear_order_stats_does_not_affect_quote_guard_stats(self) -> None:
+        """Test that clearing order stats does not affect quote guard stats."""
+        service = stats_service.StatsService()
+
+        # Record both order and quote guard stats
+        with patch('leap.services.stats_service.datetime') as mock_datetime:
+            mock_datetime.now.return_value.strftime.return_value = "10:30"
+            service.record_quote_guard_time()
+
+        service.record_order_request_time(123, 456)
+
+        # Verify both exist
+        quote_result_before = service.get_quote_guard_stats()
+        self.assertEqual(quote_result_before["total"], 1)
+        # Note: get_order_stats might return empty dict if no complete flow is recorded
+        # but internal structures should be populated
+
+        # Clear only order stats
+        service.clear_order_stats()
+
+        # Verify quote guard stats still exist but order stats are cleared
+        quote_result_after = service.get_quote_guard_stats()
+        order_result_after = service.get_order_stats()
+        self.assertEqual(quote_result_after["total"], 1)
+        self.assertEqual(order_result_after, {})
 
     def test_clear_order_stats(self) -> None:
         """Test clearing only order stats."""
@@ -208,11 +461,17 @@ class TestStatsService(unittest.TestCase):
         service.record_order_response_time(456, 789)
         service.record_data_delay([0.01, 0.02])
 
+        # Record quote guard data
+        with patch('leap.services.stats_service.datetime') as mock_datetime:
+            mock_datetime.now.return_value.strftime.return_value = "10:30"
+            service.record_quote_guard_time()
+
         # Verify all types of data exist
         self.assertGreater(len(service.get_api_stats()), 0)
         # Should have REQUEST_TO_RESPONSE stat
         self.assertGreater(len(service.get_order_stats()), 0)
         self.assertGreater(service.get_data_stats()['p50'], 0.0)
+        self.assertEqual(service.get_quote_guard_stats()["total"], 1)
 
         # Clear only order stats
         service.clear_order_stats()
@@ -224,9 +483,37 @@ class TestStatsService(unittest.TestCase):
                          0)  # Order stats cleared
         # Data stats still there
         self.assertGreater(service.get_data_stats()['p50'], 0.0)
+        # Quote guard stats still there
+        self.assertEqual(service.get_quote_guard_stats()["total"], 1)
 
         # Internal structures for orders should be empty - verify through public methods
         self.assertEqual(len(service.get_order_stats()), 0)
+
+    def test_clear_data_stats_does_not_affect_quote_guard_stats(self) -> None:
+        """Test that clearing data stats does not affect quote guard stats."""
+        service = stats_service.StatsService()
+
+        # Record both data and quote guard stats
+        with patch('leap.services.stats_service.datetime') as mock_datetime:
+            mock_datetime.now.return_value.strftime.return_value = "10:30"
+            service.record_quote_guard_time()
+
+        service.record_data_delay([0.01, 0.02])
+
+        # Verify both exist
+        quote_result_before = service.get_quote_guard_stats()
+        data_result_before = service.get_data_stats()
+        self.assertEqual(quote_result_before["total"], 1)
+        self.assertIn('p50', data_result_before)
+
+        # Clear only data stats
+        service.clear_data_stats()
+
+        # Verify quote guard stats still exist but data stats are cleared
+        quote_result_after = service.get_quote_guard_stats()
+        data_result_after = service.get_data_stats()
+        self.assertEqual(quote_result_after["total"], 1)
+        self.assertEqual(data_result_after, {})
 
     def test_clear_data_stats(self) -> None:
         """Test clearing only data stats."""
@@ -237,12 +524,18 @@ class TestStatsService(unittest.TestCase):
         service.record_order_request_time(None, 123)
         service.record_data_delay([0.01, 0.02])
 
+        # Record quote guard data
+        with patch('leap.services.stats_service.datetime') as mock_datetime:
+            mock_datetime.now.return_value.strftime.return_value = "10:30"
+            service.record_quote_guard_time()
+
         # Verify all types of data exist
         self.assertGreater(len(service.get_api_stats()), 0)
         # Add a state to make sure get_order_stats returns something
         service.record_order_state_time(123, 50)
         self.assertGreater(len(service.get_order_stats()), 0)
         self.assertGreater(service.get_data_stats()['p50'], 0.0)
+        self.assertEqual(service.get_quote_guard_stats()["total"], 1)
 
         # Clear only data stats
         service.clear_data_stats()
@@ -254,6 +547,8 @@ class TestStatsService(unittest.TestCase):
                            0)     # Order stats still there
         self.assertEqual(service.get_data_stats(), {}
                          )      # Data stats cleared
+        # Quote guard stats still there
+        self.assertEqual(service.get_quote_guard_stats()["total"], 1)
 
     @patch('leap.services.stats_service.time.perf_counter')
     def test_record_order_state_time(self, mock_perf_counter: MagicMock) -> None:

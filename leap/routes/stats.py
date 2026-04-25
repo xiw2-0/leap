@@ -23,6 +23,17 @@ async def get_data_stats(request: fastapi.Request):
     return request.state.stats_service.get_data_stats()
 
 
+@router.get("/quote-guard", summary="Get Quote Guard Stats")
+async def get_quote_guard_stats(request: fastapi.Request):
+    return request.state.stats_service.get_quote_guard_stats()
+
+
+@router.delete("/quote-guard", summary="Clear Quote Guard Stats")
+async def clear_quote_guard_stats(request: fastapi.Request):
+    request.state.stats_service.clear_quote_guard_stats()
+    return {"message": "Quote Guard Statistics cleared successfully"}
+
+
 @router.delete("/api", summary="Clear API Delay Stats")
 async def clear_api_stats(request: fastapi.Request):
     request.state.stats_service.clear_api_stats()

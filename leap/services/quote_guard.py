@@ -6,6 +6,7 @@ import logging
 from leap.services import tencent_quote
 from leap.services.trading_calendar import TradingCalendar
 from leap.services.quote_push_service import QuotePushService
+from leap.services.stats_service import StatsService
 
 
 class QuoteGuard:
@@ -19,7 +20,7 @@ class QuoteGuard:
     """
 
     def __init__(self, work_sleep: float, latency_threshold: float,
-                 tencent_quote: tencent_quote.TencentQuote, quote_push_service: QuotePushService, trading_calendar: TradingCalendar):
+                 tencent_quote: tencent_quote.TencentQuote, quote_push_service: QuotePushService, trading_calendar: TradingCalendar, stats_service: StatsService):
         """
         Initialize the quote guard.
 
@@ -29,6 +30,7 @@ class QuoteGuard:
             tencent_quote: Optional TencentQuote instance for testing
             quote_push_service: Optional QuotePushService instance for testing
             trading_calendar: Optional TradingCalendar instance for testing
+            stats_service: StatsService instance to record quote guard activations
         """
         self.work_sleep = work_sleep
         self.latency_threshold = latency_threshold
@@ -48,6 +50,7 @@ class QuoteGuard:
         self._trading_calendar = trading_calendar
         self._tencent_quote = tencent_quote
         self._quote_push_service = quote_push_service
+        self._stats_service = stats_service
 
     def is_guard_time(self, current_time: datetime.time) -> bool:
         """
@@ -121,6 +124,9 @@ class QuoteGuard:
             f"Quote data is stale. Max tick time: {max_tick_time}, "
             f"Current time: {current_time_ms}, Threshold: {threshold_ms}ms"
         )
+        
+        # Record the quote guard activation
+        self._stats_service.record_quote_guard_time()
 
         # Get all subscribed stocks from the push service
         subscribed_stocks = self._quote_push_service.get_subscribed_stocks()
