@@ -1,10 +1,9 @@
 import fastapi
 import time
-import typing
 from enum import Enum
 
 from leap.models import quote
-from leap.services import stats_service, sina_quote, tencent_quote
+from leap.services import stats_service, sina_quote, tencent_quote, xt_whole_quote
 from xtquant import xtdata  # type: ignore
 
 router = fastapi.APIRouter()
@@ -27,29 +26,8 @@ async def get_realtime_quote(
         DataSource.XT, description="Data source for quotes: xt, sina, or tencent")
 ) -> list[quote.Tick]:
     if source == DataSource.XT:
-        tick_dict: dict[str, dict[str, typing.Any]] = xtdata.get_full_tick(  # type: ignore
-            code_list=stocks)
-        ticks = [
-            quote.Tick(
-                stock_code=stock,
-                time=tick['time'],
-                last_price=tick['lastPrice'],
-                open=tick['open'],
-                high=tick['high'],
-                low=tick['low'],
-                last_close=tick["lastClose"],
-                amount=tick["amount"],
-                volume=tick["volume"],
-                pvolume=tick["pvolume"],
-                stock_status=tick["stockStatus"],
-                open_int=tick["openInt"],
-                last_settlement_price=tick["lastSettlementPrice"],
-                ask_prices=tick["askPrice"],
-                bid_prices=tick["bidPrice"],
-                ask_vols=tick["askVol"],
-                bid_vols=tick["bidVol"],
-            ) for stock, tick in tick_dict.items()
-        ]
+        xt_service: xt_whole_quote.XtWholeQuote = request.state.xt_whole_quote
+        ticks = xt_service.get_tick(stocks)
     elif source == DataSource.SINA:
         sina_service: sina_quote.SinaQuote = request.state.sina_quote
         ticks = await sina_service.get_tick(stocks)

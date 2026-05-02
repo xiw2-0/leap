@@ -7,7 +7,7 @@ from contextlib import asynccontextmanager
 from leap.config import settings
 from leap.middlewares import stats_middleware
 from leap.routes import asset, push, trade, quote, stats, docs
-from leap.services import trade_push_service, quote_push_service, quote_subscriber, asset_service, sina_quote, tencent_quote, stats_service, trade_service, broker, export_reader, trade_callback, quote_guard, trading_calendar
+from leap.services import trade_push_service, quote_push_service, quote_subscriber, asset_service, sina_quote, tencent_quote, stats_service, trade_service, broker, export_reader, trade_callback, quote_guard, trading_calendar, xt_whole_quote
 from leap.utils.logging_config import setup_logging
 
 
@@ -19,6 +19,7 @@ async def lifespan(app: fastapi.FastAPI) -> typing.AsyncGenerator[dict[str, typi
     logger.info("Starting Leap application...")
 
     # Instantiate services
+    xt_whole_quote_svc = xt_whole_quote.XtWholeQuote()
     sina_quote_svc = sina_quote.SinaQuote()
     tencent_quote_svc = tencent_quote.TencentQuote()
 
@@ -50,6 +51,7 @@ async def lifespan(app: fastapi.FastAPI) -> typing.AsyncGenerator[dict[str, typi
 
     yield {
         'asset_service': asset_svc,
+        'xt_whole_quote': xt_whole_quote_svc,
         'sina_quote': sina_quote_svc,
         'tencent_quote': tencent_quote_svc,
         'stats_service': stats_svc,
