@@ -4,6 +4,7 @@ import logging
 
 
 from leap.services import tencent_quote
+from leap.services.xt_whole_quote import XtWholeQuote
 from leap.services.trading_calendar import TradingCalendar
 from leap.services.quote_push_service import QuotePushService
 from leap.services.stats_service import StatsService
@@ -19,18 +20,24 @@ class QuoteGuard:
     and pushes it using the backup mechanism.
     """
 
-    def __init__(self, work_sleep: float, latency_threshold: float,
-                 tencent_quote: tencent_quote.TencentQuote, quote_push_service: QuotePushService, trading_calendar: TradingCalendar, stats_service: StatsService):
+    def __init__(self, work_sleep: float,
+                 latency_threshold: float,
+                 tencent_quote: tencent_quote.TencentQuote,
+                 quote_push_service: QuotePushService,
+                 trading_calendar: TradingCalendar,
+                 stats_service: StatsService,
+                 xt_whole_quote: XtWholeQuote):
         """
         Initialize the quote guard.
 
         Args:
             work_sleep: Time to sleep between checks during working hours
             latency_threshold: Threshold in seconds beyond which data is considered stale
-            tencent_quote: Optional TencentQuote instance for testing
-            quote_push_service: Optional QuotePushService instance for testing
-            trading_calendar: Optional TradingCalendar instance for testing
+            tencent_quote: TencentQuote instance for backup data
+            quote_push_service: QuotePushService instance to manage quote updates
+            trading_calendar: TradingCalendar instance to check trading days
             stats_service: StatsService instance to record quote guard activations
+            xt_whole_quote: XtWholeQuote instance for primary data source
         """
         self.work_sleep = work_sleep
         self.latency_threshold = latency_threshold
@@ -51,6 +58,7 @@ class QuoteGuard:
         self._tencent_quote = tencent_quote
         self._quote_push_service = quote_push_service
         self._stats_service = stats_service
+        self._xt_whole_quote = xt_whole_quote
 
     def is_guard_time(self, current_time: datetime.time) -> bool:
         """
@@ -106,7 +114,6 @@ class QuoteGuard:
         """
         Perform the guard check to see if backup data is needed.
         """
-
         # Get the max tick time from the quote push service
         # max_tick_time is already in milliseconds
         max_tick_time = self._quote_push_service.get_max_tick_time()
@@ -120,6 +127,7 @@ class QuoteGuard:
         if current_time_ms <= max_tick_time + threshold_ms:
             return
 
+        # Data is stale, now proceed with backup logic
         # Get all subscribed stocks from the push service
         subscribed_stocks = self._quote_push_service.get_subscribed_stocks()
 
@@ -130,21 +138,44 @@ class QuoteGuard:
             f"Quote data is stale. Max tick time: {max_tick_time}, "
             f"Current time: {current_time_ms}, Threshold: {threshold_ms}ms"
         )
+
         # Record the quote guard activation
         self._stats_service.record_quote_guard_time()
 
-        # Get fresh quotes from Tencent
+        # Query and push from whole tick first using XT data
         try:
-            ticks = await self._tencent_quote.get_tick(subscribed_stocks)
+            xt_ticks = self._xt_whole_quote.get_tick(subscribed_stocks)
 
-            for tick in ticks:
+            max_tick_time_from_xt = 0.0
+            for tick in xt_ticks:
+                max_tick_time_from_xt = max(max_tick_time_from_xt, tick.time)
                 await self._quote_push_service.push_quote_update_from_backup(
                     datetime.datetime.now(),
                     tick
                 )
 
+            # If ticks from XT is fresh enough, we don't need to query from Tencent
+            time_condition = current_time_ms >= max_tick_time_from_xt + threshold_ms
+            # We also need to query and force update from Tencent every 3 work intervals
+            interval_condition = (
+                (current_time_ms - max_tick_time) / (self.work_sleep * 1000)) % 3 == 0
+
+            if time_condition or interval_condition:
+                self._logger.info(
+                    f"Querying additional backup data from Tencent. Time condition: {time_condition}, Interval condition: {interval_condition}"
+                )
+
+                # Get fresh quotes from Tencent
+                ticks = await self._tencent_quote.get_tick(subscribed_stocks)
+
+                for tick in ticks:
+                    await self._quote_push_service.push_quote_update_from_backup(
+                        datetime.datetime.now(),
+                        tick
+                    )
+
         except Exception as e:
-            self._logger.error(f"Error fetching backup quotes: {e}")
+            self._logger.error(f"Error fetching quotes from backups: {e}")
 
     def stop(self):
         """

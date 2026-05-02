@@ -12,6 +12,7 @@ class TestQuoteGuard(unittest.TestCase):
         self.mock_trading_calendar = MagicMock()
         self.mock_tencent_quote = MagicMock()
         self.mock_quote_push_service = MagicMock()
+        self.mock_xt_whole_quote = MagicMock()
         self.stats_service = StatsService()  # Add the stats service
 
         self.quote_guard = QuoteGuard(
@@ -20,7 +21,8 @@ class TestQuoteGuard(unittest.TestCase):
             tencent_quote=self.mock_tencent_quote,
             quote_push_service=self.mock_quote_push_service,
             trading_calendar=self.mock_trading_calendar,
-            stats_service=self.stats_service  # Pass the stats service
+            stats_service=self.stats_service,  # Pass the stats service
+            xt_whole_quote=self.mock_xt_whole_quote
         )
 
     def test_is_guard_time_morning_session(self):
@@ -87,27 +89,44 @@ class TestQuoteGuard(unittest.TestCase):
         self.mock_quote_push_service.get_subscribed_stocks.return_value = [
             "000001.SZ", "600000.SH"]
 
-        mock_tick1 = MagicMock()
-        mock_tick1.stock_code = "000001.SZ"
-        mock_tick1.time = 1234567890000.0
-        mock_tick2 = MagicMock()
-        mock_tick2.stock_code = "600000.SH"
-        mock_tick2.time = 1234567890000.0
+        # Create mock XT ticks with newer timestamps
+        mock_xt_tick1 = MagicMock()
+        mock_xt_tick1.stock_code = "000001.SZ"
+        mock_xt_tick1.time = 1234567890000.0
+        mock_xt_tick2 = MagicMock()
+        mock_xt_tick2.stock_code = "600000.SH"
+        mock_xt_tick2.time = 1234567891000.0  # More recent than first tick
 
+        # Create mock Tencent ticks
+        mock_tencent_tick1 = MagicMock()
+        mock_tencent_tick1.stock_code = "000001.SZ"
+        mock_tencent_tick1.time = 1234567892000.0
+        mock_tencent_tick2 = MagicMock()
+        mock_tencent_tick2.stock_code = "600000.SH"
+        mock_tencent_tick2.time = 1234567893000.0
+
+        # Mock XT whole quote service to return data
+        self.mock_xt_whole_quote.get_tick.return_value = [
+            mock_xt_tick1, mock_xt_tick2]
+        # Mock Tencent quote service to return data
         self.mock_tencent_quote.get_tick = AsyncMock(
-            return_value=[mock_tick1, mock_tick2])
+            return_value=[mock_tencent_tick1, mock_tencent_tick2])
+        # Mock push service
         self.mock_quote_push_service.push_quote_update_from_backup = AsyncMock()
 
         # Act
         await self.quote_guard.guard()
 
         # Assert
-        # Verify that backup quotes were fetched
+        # Verify that XT quotes were fetched first
+        self.mock_xt_whole_quote.get_tick.assert_called_once_with(
+            ["000001.SZ", "600000.SH"])
+        # Verify that backup quotes were also fetched since conditions were met (interval condition)
         self.mock_tencent_quote.get_tick.assert_called_once_with(
             ["000001.SZ", "600000.SH"])
-        # Verify that backup push was called for each tick
+        # Verify that backup push was called for each tick from both sources (4 total)
         self.assertEqual(
-            self.mock_quote_push_service.push_quote_update_from_backup.call_count, 2)
+            self.mock_quote_push_service.push_quote_update_from_backup.call_count, 4)
 
         # Verify that quote guard stats were recorded
         final_stats = self.stats_service.get_quote_guard_stats()
@@ -135,7 +154,8 @@ class TestQuoteGuard(unittest.TestCase):
         await self.quote_guard.guard()
 
         # Assert
-        # Verify that backup quotes were NOT fetched
+        # Verify that neither XT nor Tencent quotes were fetched since data wasn't stale
+        self.mock_xt_whole_quote.get_tick.assert_not_called()
         self.mock_tencent_quote.get_tick.assert_not_called()
 
         # Verify that quote guard stats were not recorded since guard wasn't activated
@@ -153,6 +173,8 @@ class TestQuoteGuard(unittest.TestCase):
         await self.quote_guard.guard()
 
         # Assert
+        # Verify that XT quotes were not fetched because there are no subscriptions
+        self.mock_xt_whole_quote.get_tick.assert_called_once_with([])
         # Verify that backup quotes were NOT fetched because there are no subscriptions
         self.mock_tencent_quote.get_tick.assert_not_called()
 

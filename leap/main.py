@@ -46,6 +46,7 @@ async def lifespan(app: fastapi.FastAPI) -> typing.AsyncGenerator[dict[str, typi
         tencent_quote=tencent_quote_svc,
         trading_calendar=trading_calendar.TradingCalendar(),
         stats_service=stats_svc,
+        xt_whole_quote=xt_whole_quote_svc,
     )
     quote_guard_task = asyncio.create_task(quote_guard_svc.run())
 
