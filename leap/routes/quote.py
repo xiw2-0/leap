@@ -4,7 +4,6 @@ from enum import Enum
 
 from leap.models import quote
 from leap.services import stats_service, sina_quote, tencent_quote, xt_whole_quote
-from xtquant import xtdata  # type: ignore
 
 router = fastapi.APIRouter()
 
@@ -19,7 +18,7 @@ class DataSource(str, Enum):
 
 
 @router.get("/tick", summary="Get realtime tick quote from selected data source")
-async def get_realtime_quote(
+async def get_realtime_tick(
     request: fastapi.Request,
     stocks: list[str] = fastapi.Query(...),
     source: DataSource = fastapi.Query(
